@@ -167,13 +167,21 @@ function App() {
             <p>认真工作，也认真休息。</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <span>数据按本机时间自动更新</span>
+              <a
+                href="https://github.com/AKAama/moyu-calendar/issues"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#9f927d', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
+              >
+                反馈
+              </a>
               <button
                 className="share-btn"
                 type="button"
                 disabled={isSharing}
                 onClick={handleShare}
               >
-                📤 分享摸鱼状态
+                分享摸鱼状态
               </button>
             </div>
           </footer>
@@ -187,7 +195,7 @@ function App() {
         {/* 分享中的 loading 遮罩 */}
         {isSharing && (
           <div className="share-overlay">
-            <div className="share-overlay-toast">✨ 正在生成分享图片…</div>
+            <div className="share-overlay-toast">正在生成分享图片…</div>
           </div>
         )}
       </main>

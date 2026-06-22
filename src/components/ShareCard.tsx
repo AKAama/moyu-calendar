@@ -34,7 +34,7 @@ export default function ShareCard({ now }: ShareCardProps) {
       {/* 顶部品牌 */}
       <header className="share-header">
         <span className="share-kicker">WORKDAY SURVIVAL GUIDE</span>
-        <h1 className="share-title">🐟 摸鱼日历</h1>
+        <h1 className="share-title">摸鱼日历</h1>
       </header>
 
       {/* 日期核心区 */}
@@ -54,17 +54,17 @@ export default function ShareCard({ now }: ShareCardProps) {
       <div className="share-countdowns">
         <div className="share-cd-item share-cd-friday">
           <span className="share-cd-eyebrow">{fridayLabel}</span>
-          <strong>{friday === 0 ? '🎉' : friday}</strong>
+          <strong>{friday === 0 ? '今' : friday}</strong>
           <span className="share-cd-unit">{friday === 0 ? '' : '天'}</span>
         </div>
         <div className="share-cd-item share-cd-weekend">
           <span className="share-cd-eyebrow">{weekendLabel}</span>
-          <strong>{weekend === 0 ? '🎉' : weekend}</strong>
+          <strong>{weekend === 0 ? '今' : weekend}</strong>
           <span className="share-cd-unit">{weekend === 0 ? '' : '天'}</span>
         </div>
         <div className="share-cd-item share-cd-holiday">
           <span className="share-cd-eyebrow">下一个假期</span>
-          <strong>{holiday.active ? '🎉' : holiday.days}</strong>
+          <strong>{holiday.active ? '今' : holiday.days}</strong>
           <span className="share-cd-unit">{holiday.active ? '' : '天'}</span>
           <span className="share-cd-note">{holidayLabel}</span>
         </div>
