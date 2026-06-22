@@ -1,4 +1,5 @@
 import { Card, Cursor, Divider, Title } from 'animal-island-ui';
+import { init } from '@waline/client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   daysToFriday,
@@ -60,10 +61,33 @@ function App() {
   const [now, setNow] = useState(() => new Date());
   const [isSharing, setIsSharing] = useState(false);
   const shareCardRef = useRef<HTMLDivElement>(null);
+  const walineRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60_000);
     return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const el = walineRef.current;
+    if (!el) return;
+
+    const walineInstance = init({
+      el,
+      serverURL: 'https://waline.ismyh.cn',
+      lang: 'zh-CN',
+      dark: false,
+      emoji: [
+        '//unpkg.com/@waline/emojis@1.2.0/tieba',
+        '//unpkg.com/@waline/emojis@1.2.0/bilibili',
+      ],
+      search: false,
+      pageSize: 10,
+    });
+
+    return () => {
+      walineInstance?.destroy();
+    };
   }, []);
 
   const handleShare = useCallback(async () => {
@@ -163,15 +187,25 @@ function App() {
             </div>
           </Card>
 
+          <section className="waline-section" aria-label="摸鱼吐槽区">
+            <div className="waline-title">
+              <Title size="middle" color="app-teal">摸鱼吐槽区</Title>
+            </div>
+            <p className="waline-hint">今天也在摸鱼吗？来留个言吧～</p>
+            <Card pattern="app-teal" className="waline-card">
+              <div ref={walineRef} className="waline-container" />
+            </Card>
+          </section>
+
           <footer>
             <p>认真工作，也认真休息。</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div className="footer-actions">
               <span>数据按本机时间自动更新</span>
               <a
                 href="https://github.com/AKAama/moyu-calendar/issues"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ color: '#9f927d', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
+                className="feedback-link"
               >
                 反馈
               </a>

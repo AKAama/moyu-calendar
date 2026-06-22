@@ -280,6 +280,23 @@ footer p {
   margin-bottom: 0;
 }
 
+.footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.feedback-link {
+  color: #9f927d;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.feedback-link:hover {
+  color: #19a99d;
+}
+
 @media (max-width: 760px) {
   .page-shell {
     padding: 16px 12px 28px;
@@ -607,6 +624,160 @@ footer p {
   font-size: 16px;
   font-weight: 800;
   box-shadow: 0 12px 32px rgba(79, 125, 91, 0.3);
+}
+
+/* ---- Waline 评论区 ---- */
+.waline-section {
+  margin-top: 38px;
+  /* Waline CSS 变量覆盖 — 匹配摸鱼日历绿色系 */
+  --waline-theme-color: #19c8b9;
+  --waline-active-color: #11a89b;
+  --waline-bg-color: #f8f8f0;
+  --waline-bg-color-light: rgba(255, 255, 255, 0.68);
+  --waline-border-color: #d4cfc3;
+  --waline-color: #725d42;
+  --waline-dark-grey: #8a7b66;
+  --waline-light-grey: #9f927d;
+  --waline-info-bg-color: #f0ede3;
+  --waline-info-color: #9f927d;
+  --waline-font-size: 15px;
+  --waline-avatar-radius: 12px;
+  --waline-border: 1px solid #d4cfc3;
+}
+
+.waline-title {
+  text-align: center;
+}
+
+.waline-hint {
+  margin: 12px 0 20px;
+  color: #9f927d;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.waline-card {
+  padding: 22px !important;
+}
+
+.waline-container {
+  min-height: 200px;
+}
+
+.waline-container .wl-panel {
+  overflow: hidden;
+  border: 2px solid rgba(130, 213, 187, 0.72);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: none;
+}
+
+.waline-container .wl-header {
+  border-bottom: 1.5px solid #d4cfc3;
+}
+
+.waline-container .wl-header-item {
+  padding: 11px 14px;
+}
+
+.waline-container .wl-input,
+.waline-container .wl-editor {
+  color: #725d42;
+  font-family: inherit;
+  font-weight: 600;
+}
+
+.waline-container .wl-editor {
+  min-height: 112px;
+  padding: 16px;
+}
+
+.waline-container .wl-btn {
+  min-height: 38px;
+  padding: 0 18px;
+  border: 2px solid #9f927d;
+  border-radius: 50px;
+  color: #725d42;
+  background: #fff;
+  font-family: inherit;
+  font-weight: 800;
+  box-shadow: 0 2px 4px rgba(61, 52, 40, 0.06);
+  transition: all 0.2s ease;
+}
+
+.waline-container .wl-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(61, 52, 40, 0.1);
+}
+
+.waline-container .wl-btn.primary {
+  border-color: #11a89b;
+  color: #fff;
+  background: #19c8b9;
+  box-shadow: 0 4px 0 #11a89b;
+}
+
+.waline-container .wl-btn.primary:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #11a89b;
+}
+
+.waline-container .wl-card {
+  border-color: rgba(159, 146, 125, 0.4);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: none;
+}
+
+.waline-container .wl-avatar {
+  border: 2px solid rgba(130, 213, 187, 0.72);
+}
+
+.waline-container .wl-empty,
+.waline-container .wl-power {
+  color: #9f927d;
+  font-weight: 700;
+}
+
+/* 响应式 footer 补充 */
+footer {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+  .waline-section {
+    margin-top: 30px;
+  }
+
+  .waline-card {
+    padding: 14px !important;
+  }
+
+  .waline-container .wl-header {
+    display: block;
+  }
+
+  .waline-container .wl-header-item {
+    border-bottom: 1px solid rgba(212, 207, 195, 0.7);
+  }
+
+  footer {
+    align-items: stretch;
+  }
+
+  .footer-actions {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .footer-actions .share-btn {
+    grid-column: 1 / -1;
+    justify-content: center;
+    width: 100%;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
