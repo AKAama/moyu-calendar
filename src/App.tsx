@@ -10,6 +10,7 @@ import {
   getNextHoliday,
   getProgress,
 } from './lib/calendar';
+import { APP_VERSION, CHANGELOG } from './data/changelog';
 import { captureShareImage, shareImage } from './lib/share';
 import ShareCard from './components/ShareCard';
 
@@ -58,9 +59,73 @@ function ProgressRow({ label, value, color }: { label: string; value: number; co
   );
 }
 
+interface QuickNavProps {
+  onOpenChangelog: () => void;
+}
+
+function QuickNav({ onOpenChangelog }: QuickNavProps) {
+  return (
+    <nav className="quick-nav" aria-label="摸鱼日历快捷导航">
+      <a href="#today-section">今日</a>
+      <a href="#countdown-section">盼头</a>
+      <a href="#progress-section">进度</a>
+      <button type="button" onClick={onOpenChangelog}>
+        更新
+      </button>
+      <a href="#waline-section">吐槽</a>
+    </nav>
+  );
+}
+
+interface ChangelogDialogProps {
+  onClose: () => void;
+}
+
+function ChangelogDialog({ onClose }: ChangelogDialogProps) {
+  return (
+    <div className="changelog-overlay" role="presentation" onClick={onClose}>
+      <section
+        className="changelog-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="changelog-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <header className="changelog-heading">
+          <div>
+            <p className="changelog-kicker">RELEASE NOTES</p>
+            <Title size="middle" color="app-teal">更新日志</Title>
+          </div>
+          <button className="changelog-close" type="button" aria-label="关闭更新日志" onClick={onClose}>
+            ×
+          </button>
+        </header>
+        <span className="version-badge">当前版本 v{APP_VERSION}</span>
+        <ol className="changelog-list">
+          {CHANGELOG.map((entry) => (
+            <li key={entry.version} className="changelog-item">
+              <div className="changelog-meta">
+                <span>v{entry.version}</span>
+                <time dateTime={entry.date}>{entry.date}</time>
+              </div>
+              <h3>{entry.title}</h3>
+              <ul>
+                {entry.changes.map((change) => (
+                  <li key={change}>{change}</li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ol>
+      </section>
+    </div>
+  );
+}
+
 function App() {
   const [now, setNow] = useState(() => new Date());
   const [isSharing, setIsSharing] = useState(false);
+  const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const shareCardRef = useRef<HTMLDivElement>(null);
   const walineRef = useRef<HTMLDivElement>(null);
 
@@ -68,6 +133,19 @@ function App() {
     const timer = window.setInterval(() => setNow(new Date()), 60_000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!isChangelogOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsChangelogOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isChangelogOpen]);
 
   useEffect(() => {
     const el = walineRef.current;
@@ -130,24 +208,33 @@ function App() {
                 <p className="kicker">WORKDAY SURVIVAL GUIDE</p>
                 <h1>摸鱼日历</h1>
               </div>
-              <span className="status-pill">今天也有在努力</span>
+              <div className="topbar-actions">
+                <span className="status-pill">今天也有在努力</span>
+                <button className="version-pill" type="button" onClick={() => setIsChangelogOpen(true)}>
+                  v{APP_VERSION}
+                </button>
+              </div>
             </header>
 
-            <Card pattern="default" className="today-card">
-              <div className="date-block">
-                <span className="month-year">
-                  {now.getFullYear()}年 {now.getMonth() + 1}月
-                </span>
-                <strong className="day-number">{String(now.getDate()).padStart(2, '0')}</strong>
-              </div>
-              <div className="today-copy">
-                <span className="weekday">{WEEKDAYS[now.getDay()]}</span>
-                <h2>{getLunarDate(now)}</h2>
-                <p>宜：按时吃饭、适当发呆、准点下班</p>
-              </div>
-            </Card>
+            <QuickNav onOpenChangelog={() => setIsChangelogOpen(true)} />
 
-            <section className="countdown-section" aria-labelledby="countdown-title">
+            <section id="today-section" className="today-section">
+              <Card pattern="default" className="today-card">
+                <div className="date-block">
+                  <span className="month-year">
+                    {now.getFullYear()}年 {now.getMonth() + 1}月
+                  </span>
+                  <strong className="day-number">{String(now.getDate()).padStart(2, '0')}</strong>
+                </div>
+                <div className="today-copy">
+                  <span className="weekday">{WEEKDAYS[now.getDay()]}</span>
+                  <h2>{getLunarDate(now)}</h2>
+                  <p>宜：按时吃饭、适当发呆、准点下班</p>
+                </div>
+              </Card>
+            </section>
+
+            <section id="countdown-section" className="countdown-section" aria-labelledby="countdown-title">
               <div className="section-title" id="countdown-title">
                 <Title size="middle" color="app-teal">盼头补给站</Title>
               </div>
@@ -173,23 +260,25 @@ function App() {
               </div>
             </section>
 
-            <Card pattern="app-blue" className="progress-card">
-              <div className="progress-heading">
-                <div>
-                  <span className="card-eyebrow">时间进度条</span>
-                  <h2>生活正在加载中</h2>
+            <section id="progress-section" className="progress-section">
+              <Card pattern="app-blue" className="progress-card">
+                <div className="progress-heading">
+                  <div>
+                    <span className="card-eyebrow">时间进度条</span>
+                    <h2>生活正在加载中</h2>
+                  </div>
+                  <span className="loading-copy">慢慢来，比较快</span>
                 </div>
-                <span className="loading-copy">慢慢来，比较快</span>
-              </div>
-              <Divider />
-              <div className="progress-list">
-                <ProgressRow label="本周已过" value={progress.week} color="#19c8b9" />
-                <ProgressRow label="本月已过" value={progress.month} color="#889df0" />
-                <ProgressRow label="本年已过" value={progress.year} color="#f8a6b2" />
-              </div>
-            </Card>
+                <Divider />
+                <div className="progress-list">
+                  <ProgressRow label="本周已过" value={progress.week} color="#19c8b9" />
+                  <ProgressRow label="本月已过" value={progress.month} color="#889df0" />
+                  <ProgressRow label="本年已过" value={progress.year} color="#f8a6b2" />
+                </div>
+              </Card>
+            </section>
 
-            <section className="waline-section" aria-label="摸鱼吐槽区">
+            <section id="waline-section" className="waline-section" aria-label="摸鱼吐槽区">
               <div className="waline-title">
                 <Title size="middle" color="app-teal">摸鱼吐槽区</Title>
               </div>
@@ -234,6 +323,8 @@ function App() {
               <div className="share-overlay-toast">正在生成分享图片…</div>
             </div>
           )}
+
+          {isChangelogOpen && <ChangelogDialog onClose={() => setIsChangelogOpen(false)} />}
         </main>
       </Cursor>
       <Analytics />
