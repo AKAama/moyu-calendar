@@ -1,4 +1,5 @@
 import { Card, Cursor, Divider, Title } from 'animal-island-ui';
+import { Analytics } from '@vercel/analytics/react';
 import { init } from '@waline/client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -120,120 +121,123 @@ function App() {
     : `${formatHolidayDate(holiday.start)} · ${holiday.name}`;
 
   return (
-    <Cursor>
-      <main className="page-shell">
-        <section className="calendar-app" aria-label="打工人摸鱼日历">
-          <header className="topbar">
-            <div>
-              <p className="kicker">WORKDAY SURVIVAL GUIDE</p>
-              <h1>摸鱼日历</h1>
-            </div>
-            <span className="status-pill">今天也有在努力</span>
-          </header>
-
-          <Card pattern="default" className="today-card">
-            <div className="date-block">
-              <span className="month-year">
-                {now.getFullYear()}年 {now.getMonth() + 1}月
-              </span>
-              <strong className="day-number">{String(now.getDate()).padStart(2, '0')}</strong>
-            </div>
-            <div className="today-copy">
-              <span className="weekday">{WEEKDAYS[now.getDay()]}</span>
-              <h2>{getLunarDate(now)}</h2>
-              <p>宜：按时吃饭、适当发呆、准点下班</p>
-            </div>
-          </Card>
-
-          <section className="countdown-section" aria-labelledby="countdown-title">
-            <div className="section-title" id="countdown-title">
-              <Title size="middle" color="app-teal">盼头补给站</Title>
-            </div>
-            <div className="countdown-grid">
-              <CountdownCard
-                eyebrow={`下一个假期 · ${holiday.name}`}
-                value={holiday.days}
-                note={holidayNote}
-                color="app-yellow"
-              />
-              <CountdownCard
-                eyebrow="距离周五"
-                value={friday}
-                note={fridayNote}
-                color="app-teal"
-              />
-              <CountdownCard
-                eyebrow="距离周末"
-                value={weekend}
-                note={weekendNote}
-                color="app-pink"
-              />
-            </div>
-          </section>
-
-          <Card pattern="app-blue" className="progress-card">
-            <div className="progress-heading">
+    <>
+      <Cursor>
+        <main className="page-shell">
+          <section className="calendar-app" aria-label="打工人摸鱼日历">
+            <header className="topbar">
               <div>
-                <span className="card-eyebrow">时间进度条</span>
-                <h2>生活正在加载中</h2>
+                <p className="kicker">WORKDAY SURVIVAL GUIDE</p>
+                <h1>摸鱼日历</h1>
               </div>
-              <span className="loading-copy">慢慢来，比较快</span>
-            </div>
-            <Divider />
-            <div className="progress-list">
-              <ProgressRow label="本周已过" value={progress.week} color="#19c8b9" />
-              <ProgressRow label="本月已过" value={progress.month} color="#889df0" />
-              <ProgressRow label="本年已过" value={progress.year} color="#f8a6b2" />
-            </div>
-          </Card>
+              <span className="status-pill">今天也有在努力</span>
+            </header>
 
-          <section className="waline-section" aria-label="摸鱼吐槽区">
-            <div className="waline-title">
-              <Title size="middle" color="app-teal">摸鱼吐槽区</Title>
-            </div>
-            <p className="waline-hint">今天也在摸鱼吗？来留个言吧～</p>
-            <Card pattern="app-teal" className="waline-card">
-              <div ref={walineRef} className="waline-container" />
+            <Card pattern="default" className="today-card">
+              <div className="date-block">
+                <span className="month-year">
+                  {now.getFullYear()}年 {now.getMonth() + 1}月
+                </span>
+                <strong className="day-number">{String(now.getDate()).padStart(2, '0')}</strong>
+              </div>
+              <div className="today-copy">
+                <span className="weekday">{WEEKDAYS[now.getDay()]}</span>
+                <h2>{getLunarDate(now)}</h2>
+                <p>宜：按时吃饭、适当发呆、准点下班</p>
+              </div>
             </Card>
+
+            <section className="countdown-section" aria-labelledby="countdown-title">
+              <div className="section-title" id="countdown-title">
+                <Title size="middle" color="app-teal">盼头补给站</Title>
+              </div>
+              <div className="countdown-grid">
+                <CountdownCard
+                  eyebrow={`下一个假期 · ${holiday.name}`}
+                  value={holiday.days}
+                  note={holidayNote}
+                  color="app-yellow"
+                />
+                <CountdownCard
+                  eyebrow="距离周五"
+                  value={friday}
+                  note={fridayNote}
+                  color="app-teal"
+                />
+                <CountdownCard
+                  eyebrow="距离周末"
+                  value={weekend}
+                  note={weekendNote}
+                  color="app-pink"
+                />
+              </div>
+            </section>
+
+            <Card pattern="app-blue" className="progress-card">
+              <div className="progress-heading">
+                <div>
+                  <span className="card-eyebrow">时间进度条</span>
+                  <h2>生活正在加载中</h2>
+                </div>
+                <span className="loading-copy">慢慢来，比较快</span>
+              </div>
+              <Divider />
+              <div className="progress-list">
+                <ProgressRow label="本周已过" value={progress.week} color="#19c8b9" />
+                <ProgressRow label="本月已过" value={progress.month} color="#889df0" />
+                <ProgressRow label="本年已过" value={progress.year} color="#f8a6b2" />
+              </div>
+            </Card>
+
+            <section className="waline-section" aria-label="摸鱼吐槽区">
+              <div className="waline-title">
+                <Title size="middle" color="app-teal">摸鱼吐槽区</Title>
+              </div>
+              <p className="waline-hint">今天也在摸鱼吗？来留个言吧～</p>
+              <Card pattern="app-teal" className="waline-card">
+                <div ref={walineRef} className="waline-container" />
+              </Card>
+            </section>
+
+            <footer>
+              <p>认真工作，也认真休息。</p>
+              <div className="footer-actions">
+                <span>数据按本机时间自动更新</span>
+                <a
+                  href="https://github.com/AKAama/moyu-calendar/issues"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="feedback-link"
+                >
+                  反馈
+                </a>
+                <button
+                  className="share-btn"
+                  type="button"
+                  disabled={isSharing}
+                  onClick={handleShare}
+                >
+                  分享摸鱼状态
+                </button>
+              </div>
+            </footer>
           </section>
 
-          <footer>
-            <p>认真工作，也认真休息。</p>
-            <div className="footer-actions">
-              <span>数据按本机时间自动更新</span>
-              <a
-                href="https://github.com/AKAama/moyu-calendar/issues"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="feedback-link"
-              >
-                反馈
-              </a>
-              <button
-                className="share-btn"
-                type="button"
-                disabled={isSharing}
-                onClick={handleShare}
-              >
-                分享摸鱼状态
-              </button>
-            </div>
-          </footer>
-        </section>
-
-        {/* 隐藏的分享卡片，用于截图 */}
-        <div ref={shareCardRef} className="share-card-wrapper" aria-hidden="true">
-          <ShareCard now={now} />
-        </div>
-
-        {/* 分享中的 loading 遮罩 */}
-        {isSharing && (
-          <div className="share-overlay">
-            <div className="share-overlay-toast">正在生成分享图片…</div>
+          {/* 隐藏的分享卡片，用于截图 */}
+          <div ref={shareCardRef} className="share-card-wrapper" aria-hidden="true">
+            <ShareCard now={now} />
           </div>
-        )}
-      </main>
-    </Cursor>
+
+          {/* 分享中的 loading 遮罩 */}
+          {isSharing && (
+            <div className="share-overlay">
+              <div className="share-overlay-toast">正在生成分享图片…</div>
+            </div>
+          )}
+        </main>
+      </Cursor>
+      <Analytics />
+    </>
   );
 }
 
