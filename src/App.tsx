@@ -15,6 +15,57 @@ import { captureShareImage, shareImage } from './lib/share';
 import ShareCard from './components/ShareCard';
 
 const WEEKDAYS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+const BINGO_STORAGE_PREFIX = 'moyu-bingo';
+const BINGO_TASKS = [
+  '喝水回血',
+  '假装查资料',
+  '看天气',
+  '刷评论区',
+  '盯进度条',
+  '去厕所',
+  '打开文档',
+  '思考人生',
+  '等周五',
+];
+const BINGO_LINES = [
+  [0, 1, 2],
+  [3, 4, 5],
+  [6, 7, 8],
+  [0, 3, 6],
+  [1, 4, 7],
+  [2, 5, 8],
+  [0, 4, 8],
+  [2, 4, 6],
+];
+
+function getDateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function getBingoTitle(count: number) {
+  if (count >= 9) return '摸鱼全勤王';
+  if (count >= 7) return '带薪游牧大师';
+  if (count >= 5) return '办公室隐身术士';
+  if (count >= 3) return '水分补充专家';
+  return '摸鱼见习生';
+}
+
+function copyTextFallback(text: string) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', 'true');
+  textarea.style.position = 'fixed';
+  textarea.style.left = '-9999px';
+  textarea.style.top = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+
+  try {
+    return document.execCommand('copy');
+  } finally {
+    document.body.removeChild(textarea);
+  }
+}
 
 interface CountdownCardProps {
   eyebrow: string;
@@ -69,11 +120,129 @@ function QuickNav({ onOpenChangelog }: QuickNavProps) {
       <a href="#today-section">今日</a>
       <a href="#countdown-section">盼头</a>
       <a href="#progress-section">进度</a>
+      <a href="#bingo-section">宾果</a>
       <button type="button" onClick={onOpenChangelog}>
         更新
       </button>
       <a href="#waline-section">吐槽</a>
     </nav>
+  );
+}
+
+function BingoCard() {
+  const todayKey = getDateKey(new Date());
+  const storageKey = `${BINGO_STORAGE_PREFIX}:${todayKey}`;
+  const [selected, setSelected] = useState<number[]>(() => {
+    try {
+      const stored = window.localStorage.getItem(storageKey);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+
+  useEffect(() => {
+    window.localStorage.setItem(storageKey, JSON.stringify(selected));
+  }, [selected, storageKey]);
+
+  const selectedSet = useMemo(() => new Set(selected), [selected]);
+  const completedLine = useMemo(
+    () => BINGO_LINES.find((line) => line.every((index) => selectedSet.has(index))) ?? null,
+    [selectedSet],
+  );
+  const achievement = completedLine
+    ? {
+        title: getBingoTitle(selected.length),
+        route: completedLine.map((index) => BINGO_TASKS[index]).join(' / '),
+      }
+    : null;
+  const achievementText = achievement
+    ? `今日摸鱼成就：${achievement.title}\n我完成了「${achievement.route}」摸鱼宾果！\n#摸鱼宾果`
+    : '';
+
+  const toggleCell = (index: number) => {
+    setCopyState('idle');
+    setSelected((current) =>
+      current.includes(index) ? current.filter((item) => item !== index) : [...current, index].sort((a, b) => a - b),
+    );
+  };
+
+  const resetBingo = () => {
+    setSelected([]);
+    setCopyState('idle');
+  };
+
+  const copyAchievement = async () => {
+    if (!achievementText) return;
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(achievementText);
+      } else if (!copyTextFallback(achievementText)) {
+        throw new Error('copy failed');
+      }
+      setCopyState('copied');
+    } catch {
+      setCopyState(copyTextFallback(achievementText) ? 'copied' : 'failed');
+    }
+  };
+
+  return (
+    <section id="bingo-section" className="bingo-section" aria-labelledby="bingo-title">
+      <div className="section-title" id="bingo-title">
+        <Title size="middle" color="app-teal">今日摸鱼宾果</Title>
+      </div>
+      <Card pattern="app-yellow" className="bingo-card">
+        <div className="bingo-intro">
+          <div>
+            <span className="card-eyebrow">DAILY SIDE QUEST</span>
+            <h2>点亮一条线，领取今日成就</h2>
+          </div>
+          <span className="bingo-count">{selected.length}/9</span>
+        </div>
+        <div className="bingo-board" role="group" aria-label="今日摸鱼宾果格子">
+          {BINGO_TASKS.map((task, index) => {
+            const isActive = selectedSet.has(index);
+            const isWinning = completedLine?.includes(index) ?? false;
+
+            return (
+              <button
+                key={task}
+                type="button"
+                className={`bingo-cell${isActive ? ' active' : ''}${isWinning ? ' winning' : ''}`}
+                aria-pressed={isActive}
+                onClick={() => toggleCell(index)}
+              >
+                <span>{task}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className={`bingo-result${achievement ? ' unlocked' : ''}`}>
+          {achievement ? (
+            <>
+              <span className="bingo-result-label">今日摸鱼成就</span>
+              <strong>{achievement.title}</strong>
+              <p>完成路线：{achievement.route}</p>
+              <pre className="bingo-share-text">{achievementText}</pre>
+              <div className="bingo-actions">
+                <button className="bingo-copy-btn" type="button" onClick={copyAchievement}>
+                  复制成就去吐槽区
+                </button>
+                <button className="bingo-reset-btn" type="button" onClick={resetBingo}>
+                  重新摸
+                </button>
+              </div>
+              {copyState === 'copied' && <span className="bingo-copy-hint">复制好了，去评论区晒一下吧。</span>}
+              {copyState === 'failed' && <span className="bingo-copy-hint">复制失败，可以手动选中成就文案。</span>}
+            </>
+          ) : (
+            <p>还差一条连线。摸鱼讲究节奏，不要急，慢慢点。</p>
+          )}
+        </div>
+      </Card>
+    </section>
   );
 }
 
@@ -277,6 +446,8 @@ function App() {
                 </div>
               </Card>
             </section>
+
+            <BingoCard />
 
             <section id="waline-section" className="waline-section" aria-label="摸鱼吐槽区">
               <div className="waline-title">

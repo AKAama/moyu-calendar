@@ -1,4 +1,4 @@
-export const APP_VERSION = '0.2.0';
+export const APP_VERSION = '0.3.0';
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.3.0',
+    date: '2026-06-23',
+    title: '上线今日摸鱼宾果',
+    changes: [
+      '新增 3x3 摸鱼宾果小游戏',
+      '点亮任意一行、一列或对角线可生成今日摸鱼成就',
+      '支持复制成就文案去评论区晒战绩',
+    ],
+  },
   {
     version: '0.2.0',
     date: '2026-06-23',
