@@ -628,6 +628,8 @@ footer p {
 
 /* ---- Waline 评论区 ---- */
 .waline-section {
+  position: relative;
+  z-index: 2;
   margin-top: 38px;
   /* Waline CSS 变量覆盖 — 匹配摸鱼日历绿色系 */
   --waline-theme-color: #19c8b9;
@@ -658,15 +660,20 @@ footer p {
 }
 
 .waline-card {
+  position: relative;
+  z-index: 2;
+  overflow: visible !important;
   padding: 22px !important;
 }
 
 .waline-container {
+  position: relative;
+  z-index: 2;
   min-height: 200px;
 }
 
 .waline-container .wl-panel {
-  overflow: hidden;
+  overflow: visible;
   border: 2px solid rgba(130, 213, 187, 0.72);
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.78);
@@ -723,6 +730,52 @@ footer p {
   box-shadow: 0 1px 0 #11a89b;
 }
 
+.waline-container .wl-footer {
+  z-index: 5;
+}
+
+.waline-container .wl-emoji-popup,
+.waline-container .wl-gif-popup {
+  z-index: 30;
+  overflow: hidden;
+  border: 2px solid rgba(121, 79, 39, 0.18);
+  border-radius: 18px;
+  background: #fffdf5;
+  box-shadow: 0 16px 34px rgba(79, 125, 91, 0.22);
+}
+
+.waline-container .wl-emoji-popup {
+  inset-inline-start: 0;
+  width: min(526px, calc(100% - 8px));
+}
+
+.waline-container .wl-emoji-popup .wl-tab-wrapper {
+  max-height: 180px;
+  padding: 10px;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(25, 200, 185, 0.08) 0 2px, transparent 3px) 0 0 / 28px 28px,
+    #fffdf5;
+}
+
+.waline-container .wl-emoji-popup .wl-tabs {
+  background: #f8f8f0;
+}
+
+.waline-container .wl-emoji-popup .wl-tab.active {
+  border-color: rgba(121, 79, 39, 0.18);
+  background: #fffdf5;
+  color: #11a89b;
+  font-weight: 800;
+}
+
+.waline-container .wl-emoji-popup button {
+  border-radius: 10px;
+}
+
+.waline-container .wl-emoji-popup button:hover {
+  background: rgba(25, 200, 185, 0.12);
+}
+
 .waline-container .wl-card {
   border-color: rgba(159, 146, 125, 0.4);
   border-radius: 18px;
@@ -760,6 +813,16 @@ footer {
 
   .waline-container .wl-header-item {
     border-bottom: 1px solid rgba(212, 207, 195, 0.7);
+  }
+
+  .waline-container .wl-emoji-popup {
+    inset-inline-start: -2px;
+    width: calc(100% + 4px);
+    max-width: none;
+  }
+
+  .waline-container .wl-emoji-popup .wl-tab-wrapper {
+    max-height: 150px;
   }
 
   footer {
