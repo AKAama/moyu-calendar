@@ -16,6 +16,14 @@ import ShareCard from './components/ShareCard';
 
 const WEEKDAYS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
 const BINGO_STORAGE_PREFIX = 'moyu-bingo';
+const KFC_THURSDAY_STORAGE_PREFIX = 'moyu-kfc-thursday-dismissed';
+const KFC_THURSDAY_COPIES = [
+  '曾经有一份超级美味的 KFC 疯狂星期四套餐摆在我面前，我没有珍惜，等到失去的时候才后悔莫及。尘世间最痛苦的事莫过于此。如果上天能够给我一个再来一次的机会，我会对 KFC 疯狂星期四说三个字：我爱它！如果非要在这份套餐上加一个期限的话，我希望是……每周四都来一份。',
+  '今天是疯狂星期四，我表面在上班，实际上灵魂已经坐在 KFC 门口等一个善良的人对我说：别装了，V 你 50。',
+  '人生有三大错觉：他喜欢我、老板会准点下班、疯狂星期四不用人提醒。现在我提醒你了，剩下的你懂。',
+  '我宣布今天的工作计划：上午保持神秘，下午保持沉默，傍晚保持对 KFC 疯狂星期四的高度关注。',
+  '周四不是普通的一天，是打工人精神状态的分水岭。挺过去叫周五，挺不过去叫疯狂星期四。',
+];
 const BINGO_TASKS = [
   '喝水回血',
   '假装查资料',
@@ -48,6 +56,11 @@ function getBingoTitle(count: number) {
   if (count >= 5) return '办公室隐身术士';
   if (count >= 3) return '水分补充专家';
   return '摸鱼见习生';
+}
+
+function getKfcThursdayCopyIndex(date: Date) {
+  const seed = Number(`${date.getFullYear()}${date.getMonth() + 1}${date.getDate()}`);
+  return seed % KFC_THURSDAY_COPIES.length;
 }
 
 function copyTextFallback(text: string) {
@@ -291,12 +304,91 @@ function ChangelogDialog({ onClose }: ChangelogDialogProps) {
   );
 }
 
+interface KfcThursdayDialogProps {
+  todayKey: string;
+  onClose: () => void;
+}
+
+function KfcThursdayDialog({ todayKey, onClose }: KfcThursdayDialogProps) {
+  const today = useMemo(() => {
+    const [year, month, day] = todayKey.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }, [todayKey]);
+  const [copyIndex, setCopyIndex] = useState(() => getKfcThursdayCopyIndex(today));
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const currentCopy = KFC_THURSDAY_COPIES[copyIndex];
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  const nextCopy = () => {
+    setCopyState('idle');
+    setCopyIndex((current) => (current + 1) % KFC_THURSDAY_COPIES.length);
+  };
+
+  const copyThursdayText = async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(currentCopy);
+      } else if (!copyTextFallback(currentCopy)) {
+        throw new Error('copy failed');
+      }
+      setCopyState('copied');
+    } catch {
+      setCopyState(copyTextFallback(currentCopy) ? 'copied' : 'failed');
+    }
+  };
+
+  return (
+    <div className="kfc-overlay" role="presentation" onClick={onClose}>
+      <section
+        className="kfc-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="kfc-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button className="kfc-close" type="button" aria-label="关闭疯狂星期四彩蛋" onClick={onClose}>
+          ×
+        </button>
+        <div className="kfc-badge">THURSDAY EASTER EGG</div>
+        <div className="kfc-emoji" aria-hidden="true">🍗</div>
+        <Title size="middle" color="app-teal">
+          <span id="kfc-title">今天是疯狂星期四</span>
+        </Title>
+        <p className="kfc-lead">打工人的周四精神补给已送达。</p>
+        <blockquote className="kfc-copy">{currentCopy}</blockquote>
+        <div className="kfc-actions">
+          <button className="kfc-primary-btn" type="button" onClick={copyThursdayText}>
+            复制疯四文案
+          </button>
+          <button className="kfc-secondary-btn" type="button" onClick={nextCopy}>
+            再来一条
+          </button>
+        </div>
+        {copyState === 'copied' && <span className="kfc-copy-hint">复制好了，去群里优雅发疯吧。</span>}
+        {copyState === 'failed' && <span className="kfc-copy-hint">复制失败，可以手动选中文案。</span>}
+      </section>
+    </div>
+  );
+}
+
 function App() {
   const [now, setNow] = useState(() => new Date());
   const [isSharing, setIsSharing] = useState(false);
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
+  const [isKfcThursdayOpen, setIsKfcThursdayOpen] = useState(false);
   const shareCardRef = useRef<HTMLDivElement>(null);
   const walineRef = useRef<HTMLDivElement>(null);
+  const todayKey = getDateKey(now);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60_000);
@@ -315,6 +407,19 @@ function App() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isChangelogOpen]);
+
+  useEffect(() => {
+    if (now.getDay() !== 4) return;
+
+    const storageKey = `${KFC_THURSDAY_STORAGE_PREFIX}:${todayKey}`;
+    try {
+      if (window.localStorage.getItem(storageKey) === 'true') return;
+    } catch {
+      // localStorage 不可用时仍然展示彩蛋，不影响主页面
+    }
+
+    setIsKfcThursdayOpen(true);
+  }, [now, todayKey]);
 
   useEffect(() => {
     const el = walineRef.current;
@@ -366,6 +471,15 @@ function App() {
   const holidayNote = holiday.active
     ? `${holiday.name}假期进行中`
     : `${formatHolidayDate(holiday.start)} · ${holiday.name}`;
+
+  const closeKfcThursday = useCallback(() => {
+    try {
+      window.localStorage.setItem(`${KFC_THURSDAY_STORAGE_PREFIX}:${todayKey}`, 'true');
+    } catch {
+      // 忽略存储失败，关闭弹窗优先
+    }
+    setIsKfcThursdayOpen(false);
+  }, [todayKey]);
 
   return (
     <>
@@ -496,6 +610,7 @@ function App() {
           )}
 
           {isChangelogOpen && <ChangelogDialog onClose={() => setIsChangelogOpen(false)} />}
+          {isKfcThursdayOpen && <KfcThursdayDialog todayKey={todayKey} onClose={closeKfcThursday} />}
         </main>
       </Cursor>
       <Analytics />

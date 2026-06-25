@@ -1,4 +1,4 @@
-export const APP_VERSION = '0.3.0';
+export const APP_VERSION = '0.3.1';
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.3.1',
+    date: '2026-06-25',
+    title: '加入疯狂星期四小彩蛋',
+    changes: [
+      '周四访问页面会自动弹出疯狂星期四文案',
+      '支持切换和复制疯四文案',
+      '关闭后当天不再重复弹出，避免过度打扰',
+    ],
+  },
   {
     version: '0.3.0',
     date: '2026-06-23',
