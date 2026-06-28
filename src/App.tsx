@@ -446,7 +446,8 @@ function App() {
     return () => {
       walineInstance?.destroy();
     };
-  }, []);
+    // 假期模式早期 return 时 walineRef 尚未挂载，切回普通视图后需重跑 init。
+  }, [overrideHoliday]);
 
   const handleShare = useCallback(async () => {
     const cardEl = shareCardRef.current?.querySelector<HTMLElement>('[data-share-card]');
