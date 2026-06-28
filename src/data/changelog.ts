@@ -1,4 +1,4 @@
-export const APP_VERSION = '0.3.1';
+export const APP_VERSION = '0.4.0';
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.4.0',
+    date: '2026-06-28',
+    title: '接入天气与假期模式',
+    changes: [
+      '今日面板新增实时天气，展示温度、体感、湿度与风速',
+      '周末和法定假日自动切换假期模式页面，节日氛围拉满',
+      '假期模式支持一键切回普通摸鱼日历',
+      '假期与调休数据由后端统一判定，补班周末不再误判为休息日',
+    ],
+  },
   {
     version: '0.3.1',
     date: '2026-06-25',
