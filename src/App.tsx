@@ -12,7 +12,10 @@ import {
 } from './lib/calendar';
 import { APP_VERSION, CHANGELOG } from './data/changelog';
 import { captureShareImage, shareImage } from './lib/share';
+import { useCalendarStatus } from './lib/useCalendarStatus';
 import ShareCard from './components/ShareCard';
+import WeatherCard from './components/WeatherCard';
+import HolidayMode from './components/HolidayMode';
 
 const WEEKDAYS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
 const BINGO_STORAGE_PREFIX = 'moyu-bingo';
@@ -386,9 +389,11 @@ function App() {
   const [isSharing, setIsSharing] = useState(false);
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const [isKfcThursdayOpen, setIsKfcThursdayOpen] = useState(false);
+  const [overrideHoliday, setOverrideHoliday] = useState(false);
   const shareCardRef = useRef<HTMLDivElement>(null);
   const walineRef = useRef<HTMLDivElement>(null);
   const todayKey = getDateKey(now);
+  const calendarStatus = useCalendarStatus();
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60_000);
@@ -461,7 +466,9 @@ function App() {
     }
   }, [now]);
 
-  const holiday = useMemo(() => getNextHoliday(now), [now]);
+  const localHoliday = useMemo(() => getNextHoliday(now), [now]);
+  // 优先用后端假期数据（含调休补班），loading/error 时回退本地计算，保证离线/后端不可用时仍可用。
+  const holiday = calendarStatus.data?.nextHoliday ?? localHoliday;
   const progress = useMemo(() => getProgress(now), [now]);
   const friday = daysToFriday(now);
   const weekend = daysToWeekend(now);
@@ -472,6 +479,8 @@ function App() {
     ? `${holiday.name}假期进行中`
     : `${formatHolidayDate(holiday.start)} · ${holiday.name}`;
 
+  const inHolidayMode = Boolean(calendarStatus.data?.isRestDay) && !overrideHoliday;
+
   const closeKfcThursday = useCallback(() => {
     try {
       window.localStorage.setItem(`${KFC_THURSDAY_STORAGE_PREFIX}:${todayKey}`, 'true');
@@ -480,6 +489,16 @@ function App() {
     }
     setIsKfcThursdayOpen(false);
   }, [todayKey]);
+
+  if (inHolidayMode && calendarStatus.data) {
+    return (
+      <HolidayMode
+        now={now}
+        status={calendarStatus.data}
+        onExit={() => setOverrideHoliday(true)}
+      />
+    );
+  }
 
   return (
     <>
@@ -514,6 +533,7 @@ function App() {
                   <h2>{getLunarDate(now)}</h2>
                   <p>宜：按时吃饭、适当发呆、准点下班</p>
                 </div>
+                <WeatherCard />
               </Card>
             </section>
 

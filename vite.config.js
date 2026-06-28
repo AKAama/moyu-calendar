@@ -8,4 +8,10 @@ export default defineConfig({
         __VUE_PROD_DEVTOOLS__: false,
         __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
     },
+    server: {
+        host: true,
+        proxy: {
+            '/api': 'http://127.0.0.1:3001',
+        },
+    },
 });

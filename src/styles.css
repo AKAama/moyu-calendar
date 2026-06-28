@@ -242,6 +242,207 @@ p {
   font-weight: 600;
 }
 
+/* ===== 假期模式 ===== */
+.holiday-mode {
+  position: relative;
+  width: min(100%, 720px);
+  margin: 0 auto;
+  padding: 12vh 22px 44px;
+}
+
+.holiday-card {
+  position: relative;
+  z-index: 1;
+  padding: 44px 32px 36px !important;
+  text-align: center;
+  overflow: hidden;
+}
+
+.holiday-card .card-eyebrow {
+  margin-bottom: 18px;
+  color: #794f27;
+  font-size: 12px;
+}
+
+.holiday-title {
+  margin: 0 0 14px;
+  color: #794f27;
+  font-size: clamp(40px, 9vw, 72px);
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+}
+
+.holiday-subtitle {
+  margin: 0 0 20px;
+  color: #8a7b66;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.holiday-tagline {
+  margin: 0 auto 18px;
+  max-width: 420px;
+  color: #725d42;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.holiday-remaining {
+  margin: 0 auto 22px;
+  color: #794f27;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.holiday-remaining strong {
+  color: #d97843;
+  font-size: 22px;
+}
+
+.holiday-weather {
+  margin: 22px auto 26px;
+}
+
+.holiday-exit {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 9px 22px;
+  border: none;
+  border-radius: 50px;
+  background: transparent;
+  color: #9f927d;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: color 0.16s ease;
+}
+
+.holiday-exit:hover {
+  color: #794f27;
+  text-decoration: underline;
+}
+
+.holiday-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.holiday-particle {
+  position: absolute;
+  top: -10%;
+  font-size: 28px;
+  opacity: 0.85;
+  animation: holiday-float linear infinite;
+  will-change: transform;
+}
+
+@keyframes holiday-float {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.85;
+  }
+  90% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateY(110vh) rotate(220deg);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .holiday-particles {
+    display: none;
+  }
+}
+
+.weather-inline {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 2px dashed #d4cfc3;
+}
+
+.weather-inline--loading {
+  color: #8a7b66;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.weather-emoji {
+  font-size: 38px;
+  line-height: 1;
+}
+
+.weather-temp {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  color: #0f7d72;
+}
+
+.weather-temp strong {
+  font-size: clamp(34px, 5vw, 44px);
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+}
+
+.weather-temp span {
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.weather-cond {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.weather-cond-text {
+  color: #794f27;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.weather-feels {
+  color: #8a7b66;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.weather-meta {
+  display: flex;
+  gap: 14px;
+  color: #8a7b66;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.weather-city {
+  margin-left: auto;
+  padding: 4px 11px;
+  border-radius: 50px;
+  background: #6fba2c;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
 .countdown-section {
   margin-top: 38px;
 }
