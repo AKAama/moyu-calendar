@@ -443,6 +443,50 @@ p {
   letter-spacing: 0.08em;
 }
 
+.workday-count {
+  width: fit-content;
+  margin-top: 18px;
+  padding: 7px 13px;
+  border: 2px solid rgba(25, 200, 185, 0.2);
+  border-radius: 999px;
+  color: #168f84;
+  background: rgba(25, 200, 185, 0.1);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.work-hours-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.work-hours-summary .workday-count { margin-top: 0; }
+
+.required-hours,
+.work-hour-factor {
+  padding: 7px 13px;
+  border-radius: 999px;
+  color: #725d42;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.required-hours strong { color: #e47952; font-size: 17px; }
+
+.work-hour-factor select {
+  margin-left: 7px;
+  border: 0;
+  color: #168f84;
+  background: transparent;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .countdown-section {
   margin-top: 38px;
 }
@@ -1714,3 +1758,14 @@ footer {
     animation-iteration-count: 1 !important;
   }
 }
+.bingo-leaderboard {
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.bingo-leaderboard ol { margin: 10px 0 0; padding-left: 28px; }
+.bingo-leaderboard li { padding: 5px 0; color: #725d42; }
+.bingo-leaderboard li span { margin-left: 6px; }
+.bingo-leaderboard li strong { float: right; color: #168f84; }

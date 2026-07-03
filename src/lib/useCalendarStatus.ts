@@ -15,6 +15,10 @@ export interface CalendarStatus {
   isHoliday: boolean;
   isTransferWorkday: boolean;
   holidayName: string | null;
+  monthlyWorkdays: number;
+  daysToFriday: number;
+  daysToRestDay: number;
+  nextRestDate: string;
   nextHoliday: NextHoliday;
 }
 
@@ -24,7 +28,7 @@ export interface CalendarState {
   error: string | null;
 }
 
-export function useCalendarStatus(): CalendarState {
+export function useCalendarStatus(date: string): CalendarState {
   const [state, setState] = useState<CalendarState>({ loading: true, data: null, error: null });
 
   useEffect(() => {
@@ -32,7 +36,7 @@ export function useCalendarStatus(): CalendarState {
 
     (async () => {
       try {
-        const res = await fetch('/api/calendar');
+        const res = await fetch(`/api/calendar?date=${encodeURIComponent(date)}`);
         if (!res.ok) throw new Error(`calendar request failed: ${res.status}`);
         const json: CalendarStatus = await res.json();
         if (!cancelled) setState({ loading: false, data: json, error: null });
@@ -46,7 +50,7 @@ export function useCalendarStatus(): CalendarState {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [date]);
 
   return state;
 }

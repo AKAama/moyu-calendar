@@ -1,45 +1,9 @@
-import { HOLIDAYS, type Holiday } from '../data/holidays';
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 function atLocalMidnight(value: Date | string): Date {
   if (typeof value === 'string') {
     const [year, month, day] = value.split('-').map(Number);
     return new Date(year, month - 1, day);
   }
   return new Date(value.getFullYear(), value.getMonth(), value.getDate());
-}
-
-export function daysUntil(from: Date, target: Date | string): number {
-  const diff = atLocalMidnight(target).getTime() - atLocalMidnight(from).getTime();
-  return Math.max(0, Math.round(diff / DAY_MS));
-}
-
-export function getNextHoliday(now: Date): Holiday & { days: number; active: boolean } {
-  const today = atLocalMidnight(now);
-  const found = HOLIDAYS.find((holiday) => atLocalMidnight(holiday.end) >= today);
-
-  if (!found) {
-    const nextNewYear: Holiday = {
-      name: '元旦',
-      start: `${now.getFullYear() + 1}-01-01`,
-      end: `${now.getFullYear() + 1}-01-01`,
-    };
-    return { ...nextNewYear, days: daysUntil(now, nextNewYear.start), active: false };
-  }
-
-  const active = atLocalMidnight(found.start) <= today;
-  return { ...found, days: active ? 0 : daysUntil(now, found.start), active };
-}
-
-export function daysToFriday(now: Date): number {
-  return (5 - now.getDay() + 7) % 7;
-}
-
-export function daysToWeekend(now: Date): number {
-  const day = now.getDay();
-  if (day === 0 || day === 6) return 0;
-  return 6 - day;
 }
 
 function clampPercent(value: number): number {
@@ -82,6 +46,26 @@ export function getLunarDate(date: Date): string {
     return `${month}${dayNames[day] ?? day}`;
   } catch {
     return '农历日期';
+  }
+}
+
+export function getGanzhiYear(date: Date): string {
+  try {
+    const parts = new Intl.DateTimeFormat('zh-CN-u-ca-chinese', {
+      year: 'numeric',
+    }).formatToParts(date);
+    const lunarYear = Number(parts.find((part) => String(part.type) === 'relatedYear')?.value);
+    if (!Number.isFinite(lunarYear)) throw new Error('Invalid lunar year');
+
+    const stems = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+    const branches = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+    const zodiacs = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'];
+    const stemIndex = (lunarYear - 4) % stems.length;
+    const branchIndex = (lunarYear - 4) % branches.length;
+
+    return `${stems[stemIndex]}${branches[branchIndex]}${zodiacs[branchIndex]}年`;
+  } catch {
+    return '农历纪年';
   }
 }
 

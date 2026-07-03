@@ -52,18 +52,14 @@ src/
 │   └── ShareCard.tsx     # 分享卡片组件
 ├── lib/
 │   ├── calendar.ts       # 日期计算逻辑
-│   └── share.ts          # 截图与分享工具
-└── data/
-    └── holidays.ts       # 节假日数据
+│   ├── share.ts          # 截图与分享工具
+│   └── useCalendarStatus.ts # 后端日历状态
+└── data/                 # 更新日志等静态内容
 ```
 
 ## 更新节假日
 
-节假日数据在 `src/data/holidays.ts` 中维护。每年国务院公布新安排后，按以下格式更新即可：
-
-```ts
-{ name: '春节', start: '2027-02-06', end: '2027-02-12' },
-```
+节假日、调休和工作日数据由独立后端的 `GET /api/calendar` 统一提供，前端不再维护副本。
 
 ## License
 

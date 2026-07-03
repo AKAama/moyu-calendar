@@ -3,11 +3,9 @@ import { Analytics } from '@vercel/analytics/react';
 import { init } from '@waline/client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  daysToFriday,
-  daysToWeekend,
   formatHolidayDate,
+  getGanzhiYear,
   getLunarDate,
-  getNextHoliday,
   getProgress,
 } from './lib/calendar';
 import { APP_VERSION, CHANGELOG } from './data/changelog';
@@ -20,6 +18,9 @@ import HolidayMode from './components/HolidayMode';
 const WEEKDAYS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
 const BINGO_STORAGE_PREFIX = 'moyu-bingo';
 const KFC_THURSDAY_STORAGE_PREFIX = 'moyu-kfc-thursday-dismissed';
+const VISITOR_STORAGE_KEY = 'moyu-visitor-profile';
+const WORK_HOUR_FACTOR_KEY = 'moyu-work-hour-factor';
+const DAILY_WORK_HOURS = 8;
 const KFC_THURSDAY_COPIES = [
   '曾经有一份超级美味的 KFC 疯狂星期四套餐摆在我面前，我没有珍惜，等到失去的时候才后悔莫及。尘世间最痛苦的事莫过于此。如果上天能够给我一个再来一次的机会，我会对 KFC 疯狂星期四说三个字：我爱它！如果非要在这份套餐上加一个期限的话，我希望是……每周四都来一份。',
   '今天是疯狂星期四，我表面在上班，实际上灵魂已经坐在 KFC 门口等一个善良的人对我说：别装了，V 你 50。',
@@ -51,6 +52,20 @@ const BINGO_LINES = [
 
 function getDateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function getVisitorProfile() {
+  try {
+    const stored = window.localStorage.getItem(VISITOR_STORAGE_KEY);
+    if (stored) return JSON.parse(stored) as { id: string; name: string };
+    const animals = ['小熊', '海獭', '企鹅', '水豚', '橘猫', '海豹'];
+    const id = crypto.randomUUID();
+    const profile = { id, name: `摸鱼${animals[id.charCodeAt(0) % animals.length]}` };
+    window.localStorage.setItem(VISITOR_STORAGE_KEY, JSON.stringify(profile));
+    return profile;
+  } catch {
+    return { id: `guest-${Date.now()}`, name: '匿名摸鱼人' };
+  }
 }
 
 function getBingoTitle(count: number) {
@@ -85,7 +100,7 @@ function copyTextFallback(text: string) {
 
 interface CountdownCardProps {
   eyebrow: string;
-  value: number;
+  value: number | string;
   unit?: string;
   note: string;
   color: 'app-yellow' | 'app-teal' | 'app-pink';
@@ -157,6 +172,15 @@ function BingoCard() {
     }
   });
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const [leaderboard, setLeaderboard] = useState<Array<{ displayName: string; score: number; title: string }>>([]);
+  const profile = useMemo(getVisitorProfile, []);
+
+  const refreshLeaderboard = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/bingo/leaderboard?date=${todayKey}`);
+      if (res.ok) setLeaderboard((await res.json()).entries ?? []);
+    } catch { /* 排行榜不可用不影响本地宾果 */ }
+  }, [todayKey]);
 
   useEffect(() => {
     window.localStorage.setItem(storageKey, JSON.stringify(selected));
@@ -176,6 +200,17 @@ function BingoCard() {
   const achievementText = achievement
     ? `今日摸鱼成就：${achievement.title}\n我完成了「${achievement.route}」摸鱼宾果！\n#摸鱼宾果`
     : '';
+
+  useEffect(() => { void refreshLeaderboard(); }, [refreshLeaderboard]);
+
+  useEffect(() => {
+    if (!achievement) return;
+    void fetch('/api/bingo/complete', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ date: todayKey, visitorId: profile.id, displayName: profile.name,
+        score: selected.length, title: achievement.title }),
+    }).then(() => refreshLeaderboard()).catch(() => undefined);
+  }, [achievement?.title, profile.id, profile.name, refreshLeaderboard, selected.length, todayKey]);
 
   const toggleCell = (index: number) => {
     setCopyState('idle');
@@ -255,6 +290,14 @@ function BingoCard() {
             </>
           ) : (
             <p>还差一条连线。摸鱼讲究节奏，不要急，慢慢点。</p>
+          )}
+        </div>
+        <div className="bingo-leaderboard">
+          <span className="bingo-result-label">今日摸鱼榜</span>
+          {leaderboard.length === 0 ? <p>还没人上榜，你来当第一条鱼。</p> : (
+            <ol>{leaderboard.slice(0, 5).map((entry, index) => (
+              <li key={`${entry.displayName}-${index}`}><span>{entry.displayName}</span><strong>{entry.score}/9</strong></li>
+            ))}</ol>
           )}
         </div>
       </Card>
@@ -390,10 +433,28 @@ function App() {
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const [isKfcThursdayOpen, setIsKfcThursdayOpen] = useState(false);
   const [overrideHoliday, setOverrideHoliday] = useState(false);
+  const [workHourFactor, setWorkHourFactor] = useState(() => {
+    try {
+      const stored = Number(window.localStorage.getItem(WORK_HOUR_FACTOR_KEY));
+      return [0.5, 1, 1.25, 1.5, 2].includes(stored) ? stored : 1;
+    } catch {
+      return 1;
+    }
+  });
   const shareCardRef = useRef<HTMLDivElement>(null);
   const walineRef = useRef<HTMLDivElement>(null);
   const todayKey = getDateKey(now);
-  const calendarStatus = useCalendarStatus();
+  const calendarStatus = useCalendarStatus(todayKey);
+
+  useEffect(() => {
+    const key = `moyu-page-view:${todayKey}`;
+    if (window.sessionStorage.getItem(key)) return;
+    window.sessionStorage.setItem(key, '1');
+    const profile = getVisitorProfile();
+    void fetch('/api/events', { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ type: 'page_view', visitorId: profile.id, payload: { path: window.location.pathname } })
+    }).catch(() => undefined);
+  }, [todayKey]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60_000);
@@ -467,18 +528,28 @@ function App() {
     }
   }, [now]);
 
-  const localHoliday = useMemo(() => getNextHoliday(now), [now]);
-  // 优先用后端假期数据（含调休补班），loading/error 时回退本地计算，保证离线/后端不可用时仍可用。
-  const holiday = calendarStatus.data?.nextHoliday ?? localHoliday;
+  const holiday = calendarStatus.data?.nextHoliday;
   const progress = useMemo(() => getProgress(now), [now]);
-  const friday = daysToFriday(now);
-  const weekend = daysToWeekend(now);
+  const monthlyWorkdays = calendarStatus.data?.monthlyWorkdays ?? '—';
+  const monthlyRequiredHours = calendarStatus.data
+    ? calendarStatus.data.monthlyWorkdays * DAILY_WORK_HOURS * workHourFactor
+    : '—';
+  const friday = calendarStatus.data?.daysToFriday;
+  const restDay = calendarStatus.data?.daysToRestDay;
 
-  const fridayNote = friday === 0 ? '今天就是周五，稳住别浪' : '再坚持一下，周五在招手';
-  const weekendNote = weekend === 0 ? '周末进行中，请放心摸鱼' : '距离自由活动时间';
-  const holidayNote = holiday.active
-    ? `${holiday.name}假期进行中`
-    : `${formatHolidayDate(holiday.start)} · ${holiday.name}`;
+  const fridayNote = friday === undefined
+    ? '正在向后端打听'
+    : friday === 0 ? '今天就是周五，稳住别浪' : '再坚持一下，周五在招手';
+  const restDayNote = restDay === undefined
+    ? '正在向后端打听'
+    : restDay === 0
+      ? '休息日进行中，请放心摸鱼'
+      : `${formatHolidayDate(calendarStatus.data!.nextRestDate)} · 自由活动时间`;
+  const holidayNote = !holiday
+    ? '正在向后端打听'
+    : holiday.active
+      ? `${holiday.name}假期进行中`
+      : `${formatHolidayDate(holiday.start)} · ${holiday.name}`;
 
   const inHolidayMode = Boolean(calendarStatus.data?.isRestDay) && !overrideHoliday;
 
@@ -531,8 +602,27 @@ function App() {
                 </div>
                 <div className="today-copy">
                   <span className="weekday">{WEEKDAYS[now.getDay()]}</span>
-                  <h2>{getLunarDate(now)}</h2>
+                  <h2>{getGanzhiYear(now)} · {getLunarDate(now)}</h2>
                   <p>宜：按时吃饭、适当发呆、准点下班</p>
+                  <div className="work-hours-summary">
+                    <span className="workday-count">本月共 {monthlyWorkdays} 个工作日</span>
+                    <span className="required-hours">所需工时 <strong>{monthlyRequiredHours}</strong> 小时</span>
+                    <label className="work-hour-factor">
+                      工时系数
+                      <select
+                        value={workHourFactor}
+                        onChange={(event) => {
+                          const factor = Number(event.target.value);
+                          setWorkHourFactor(factor);
+                          try { window.localStorage.setItem(WORK_HOUR_FACTOR_KEY, String(factor)); } catch { /* 忽略 */ }
+                        }}
+                      >
+                        {[0.5, 1, 1.25, 1.5, 2].map((factor) => (
+                          <option key={factor} value={factor}>{factor}×</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
                 </div>
                 <WeatherCard />
               </Card>
@@ -544,21 +634,21 @@ function App() {
               </div>
               <div className="countdown-grid">
                 <CountdownCard
-                  eyebrow={`下一个假期 · ${holiday.name}`}
-                  value={holiday.days}
+                  eyebrow={holiday ? `下一个假期 · ${holiday.name}` : '下一个假期'}
+                  value={holiday?.days ?? '—'}
                   note={holidayNote}
                   color="app-yellow"
                 />
                 <CountdownCard
                   eyebrow="距离周五"
-                  value={friday}
+                  value={friday ?? '—'}
                   note={fridayNote}
                   color="app-teal"
                 />
                 <CountdownCard
-                  eyebrow="距离周末"
-                  value={weekend}
-                  note={weekendNote}
+                  eyebrow="距离休息日"
+                  value={restDay ?? '—'}
+                  note={restDayNote}
                   color="app-pink"
                 />
               </div>
@@ -620,7 +710,7 @@ function App() {
 
           {/* 隐藏的分享卡片，用于截图 */}
           <div ref={shareCardRef} className="share-card-wrapper" aria-hidden="true">
-            <ShareCard now={now} />
+            <ShareCard now={now} calendar={calendarStatus.data} />
           </div>
 
           {/* 分享中的 loading 遮罩 */}

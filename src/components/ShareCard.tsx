@@ -1,33 +1,34 @@
 import { useMemo } from 'react';
 import {
-  daysToFriday,
-  daysToWeekend,
   formatHolidayDate,
   getLunarDate,
-  getNextHoliday,
   getProgress,
 } from '../lib/calendar';
 import { getRandomQuote } from '../lib/share';
+import type { CalendarStatus } from '../lib/useCalendarStatus';
 
 const WEEKDAYS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
 
 interface ShareCardProps {
   now: Date;
+  calendar: CalendarStatus | null;
 }
 
-export default function ShareCard({ now }: ShareCardProps) {
-  const holiday = useMemo(() => getNextHoliday(now), [now]);
+export default function ShareCard({ now, calendar }: ShareCardProps) {
+  const holiday = calendar?.nextHoliday;
   const progress = useMemo(() => getProgress(now), [now]);
-  const friday = daysToFriday(now);
-  const weekend = daysToWeekend(now);
+  const friday = calendar?.daysToFriday;
+  const restDay = calendar?.daysToRestDay;
   const quote = useMemo(() => getRandomQuote(), []);
 
-  const holidayLabel = holiday.active
-    ? `${holiday.name}假期进行中`
-    : `${formatHolidayDate(holiday.start)} · ${holiday.name}`;
+  const holidayLabel = !holiday
+    ? '日历数据加载中'
+    : holiday.active
+      ? `${holiday.name}假期进行中`
+      : `${formatHolidayDate(holiday.start)} · ${holiday.name}`;
 
   const fridayLabel = friday === 0 ? '今天就是周五！' : '距离周五';
-  const weekendLabel = weekend === 0 ? '周末进行中' : '距离周末';
+  const restDayLabel = restDay === 0 ? '休息日进行中' : '距离休息日';
 
   return (
     <div className="share-card" data-share-card>
@@ -54,18 +55,18 @@ export default function ShareCard({ now }: ShareCardProps) {
       <div className="share-countdowns">
         <div className="share-cd-item share-cd-friday">
           <span className="share-cd-eyebrow">{fridayLabel}</span>
-          <strong>{friday === 0 ? '今' : friday}</strong>
-          <span className="share-cd-unit">{friday === 0 ? '' : '天'}</span>
+          <strong>{friday === undefined ? '—' : friday === 0 ? '今' : friday}</strong>
+          <span className="share-cd-unit">{friday === undefined || friday === 0 ? '' : '天'}</span>
         </div>
         <div className="share-cd-item share-cd-weekend">
-          <span className="share-cd-eyebrow">{weekendLabel}</span>
-          <strong>{weekend === 0 ? '今' : weekend}</strong>
-          <span className="share-cd-unit">{weekend === 0 ? '' : '天'}</span>
+          <span className="share-cd-eyebrow">{restDayLabel}</span>
+          <strong>{restDay === undefined ? '—' : restDay === 0 ? '今' : restDay}</strong>
+          <span className="share-cd-unit">{restDay === undefined || restDay === 0 ? '' : '天'}</span>
         </div>
         <div className="share-cd-item share-cd-holiday">
           <span className="share-cd-eyebrow">下一个假期</span>
-          <strong>{holiday.active ? '今' : holiday.days}</strong>
-          <span className="share-cd-unit">{holiday.active ? '' : '天'}</span>
+          <strong>{!holiday ? '—' : holiday.active ? '今' : holiday.days}</strong>
+          <span className="share-cd-unit">{!holiday || holiday.active ? '' : '天'}</span>
           <span className="share-cd-note">{holidayLabel}</span>
         </div>
       </div>
