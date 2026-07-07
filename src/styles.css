@@ -216,14 +216,9 @@ p {
   padding: 20px 16px;
 }
 
-.weekday {
+.weekday-tag {
   width: fit-content;
   margin-bottom: 16px;
-  padding: 7px 13px;
-  border-radius: 50px;
-  color: #fff;
-  background: #6fba2c;
-  font-size: 14px;
   font-weight: 900;
   letter-spacing: 0.12em;
 }
@@ -443,18 +438,6 @@ p {
   letter-spacing: 0.08em;
 }
 
-.workday-count {
-  width: fit-content;
-  margin-top: 18px;
-  padding: 7px 13px;
-  border: 2px solid rgba(25, 200, 185, 0.2);
-  border-radius: 999px;
-  color: #168f84;
-  background: rgba(25, 200, 185, 0.1);
-  font-size: 14px;
-  font-weight: 900;
-}
-
 .work-hours-summary {
   display: flex;
   align-items: center;
@@ -463,9 +446,6 @@ p {
   margin-top: 18px;
 }
 
-.work-hours-summary .workday-count { margin-top: 0; }
-
-.required-hours,
 .work-hour-factor {
   padding: 7px 13px;
   border-radius: 999px;
@@ -475,7 +455,7 @@ p {
   font-weight: 800;
 }
 
-.required-hours strong { color: #e47952; font-size: 17px; }
+.work-hours-summary strong { color: #e47952; font-size: 17px; }
 
 .work-hour-factor select {
   margin-left: 7px;
@@ -572,33 +552,32 @@ p {
   gap: 20px;
 }
 
-.progress-meta {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 8px;
-  font-size: 14px;
-  font-weight: 800;
+.progress-row {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
 }
 
-.progress-meta strong {
+.progress-label {
+  font-size: 14px;
+  font-weight: 800;
   color: #794f27;
 }
 
-.progress-track {
-  height: 17px;
-  overflow: hidden;
-  border: 2px solid rgba(159, 146, 125, 0.48);
-  border-radius: 50px;
-  background: rgba(255, 255, 255, 0.72);
+/* Progress v1.2.0 暂未暴露颜色属性，在业务层恢复三条进度的识别色。 */
+.progress-row [class*="animal-fill-"] {
+  background-color: var(--moyu-progress-color);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--moyu-progress-color) 0 10px,
+    var(--moyu-progress-stripe) 10px 20px
+  );
 }
 
-.progress-fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  transition: width 0.45s ease;
-}
+.progress-teal { --moyu-progress-color: #19c8b9; --moyu-progress-stripe: #0eafa3; }
+.progress-blue { --moyu-progress-color: #889df0; --moyu-progress-stripe: #7188df; }
+.progress-pink { --moyu-progress-color: #f8a6b2; --moyu-progress-stripe: #e78d9c; }
 
 .bingo-section {
   margin-top: 30px;

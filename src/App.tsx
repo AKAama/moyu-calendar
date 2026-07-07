@@ -1,4 +1,4 @@
-import { Card, Cursor, Divider, Title } from 'animal-island-ui';
+import { Card, Cursor, Divider, Notification, Progress, Tag, Title, Tooltip } from 'animal-island-ui';
 import { Analytics } from '@vercel/analytics/react';
 import { init } from '@waline/client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -119,24 +119,12 @@ function CountdownCard({ eyebrow, value, unit = '天', note, color }: CountdownC
   );
 }
 
-function ProgressRow({ label, value, color }: { label: string; value: number; color: string }) {
+function ProgressRow({ label, value, tone }: { label: string; value: number; tone: 'teal' | 'blue' | 'pink' }) {
   const rounded = Math.round(value * 10) / 10;
   return (
-    <div className="progress-row">
-      <div className="progress-meta">
-        <span>{label}</span>
-        <strong>{rounded}%</strong>
-      </div>
-      <div
-        className="progress-track"
-        role="progressbar"
-        aria-label={`${label}百分比`}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={rounded}
-      >
-        <span className="progress-fill" style={{ width: `${rounded}%`, backgroundColor: color }} />
-      </div>
+    <div className={`progress-row progress-${tone}`}>
+      <span className="progress-label">{label}</span>
+      <Progress percent={rounded} size="middle" infoPosition="right" infoFormat={(percent) => `${percent}%`} />
     </div>
   );
 }
@@ -171,9 +159,9 @@ function BingoCard() {
       return [];
     }
   });
-  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
   const [leaderboard, setLeaderboard] = useState<Array<{ displayName: string; score: number; title: string }>>([]);
   const profile = useMemo(getVisitorProfile, []);
+  const submittedScoreRef = useRef(0);
 
   const refreshLeaderboard = useCallback(async () => {
     try {
@@ -204,16 +192,20 @@ function BingoCard() {
   useEffect(() => { void refreshLeaderboard(); }, [refreshLeaderboard]);
 
   useEffect(() => {
-    if (!achievement) return;
+    if (!achievement || selected.length <= submittedScoreRef.current) return;
+    submittedScoreRef.current = selected.length;
     void fetch('/api/bingo/complete', {
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ date: todayKey, visitorId: profile.id, displayName: profile.name,
         score: selected.length, title: achievement.title }),
-    }).then(() => refreshLeaderboard()).catch(() => undefined);
+    }).then((response) => {
+      if (!response.ok) throw new Error('save failed');
+      Notification.success({ message: '摸鱼成就已上榜', description: `${profile.name} · ${selected.length}/9` });
+      return refreshLeaderboard();
+    }).catch(() => Notification.error({ message: '上榜失败', description: '本地进度还在，稍后再试。' }));
   }, [achievement?.title, profile.id, profile.name, refreshLeaderboard, selected.length, todayKey]);
 
   const toggleCell = (index: number) => {
-    setCopyState('idle');
     setSelected((current) =>
       current.includes(index) ? current.filter((item) => item !== index) : [...current, index].sort((a, b) => a - b),
     );
@@ -221,7 +213,6 @@ function BingoCard() {
 
   const resetBingo = () => {
     setSelected([]);
-    setCopyState('idle');
   };
 
   const copyAchievement = async () => {
@@ -233,9 +224,13 @@ function BingoCard() {
       } else if (!copyTextFallback(achievementText)) {
         throw new Error('copy failed');
       }
-      setCopyState('copied');
+      Notification.success({ message: '成就文案已复制', description: '去评论区优雅地晒一下吧。' });
     } catch {
-      setCopyState(copyTextFallback(achievementText) ? 'copied' : 'failed');
+      if (copyTextFallback(achievementText)) {
+        Notification.success({ message: '成就文案已复制' });
+      } else {
+        Notification.error({ message: '复制失败', description: '可以手动选中文案。' });
+      }
     }
   };
 
@@ -285,8 +280,6 @@ function BingoCard() {
                   重新摸
                 </button>
               </div>
-              {copyState === 'copied' && <span className="bingo-copy-hint">复制好了，去评论区晒一下吧。</span>}
-              {copyState === 'failed' && <span className="bingo-copy-hint">复制失败，可以手动选中成就文案。</span>}
             </>
           ) : (
             <p>还差一条连线。摸鱼讲究节奏，不要急，慢慢点。</p>
@@ -601,27 +594,30 @@ function App() {
                   <strong className="day-number">{String(now.getDate()).padStart(2, '0')}</strong>
                 </div>
                 <div className="today-copy">
-                  <span className="weekday">{WEEKDAYS[now.getDay()]}</span>
+                  <Tag color="app-green" size="large" className="weekday-tag">{WEEKDAYS[now.getDay()]}</Tag>
                   <h2>{getGanzhiYear(now)} · {getLunarDate(now)}</h2>
                   <p>宜：按时吃饭、适当发呆、准点下班</p>
                   <div className="work-hours-summary">
-                    <span className="workday-count">本月共 {monthlyWorkdays} 个工作日</span>
-                    <span className="required-hours">所需工时 <strong>{monthlyRequiredHours}</strong> 小时</span>
-                    <label className="work-hour-factor">
-                      工时系数
-                      <select
-                        value={workHourFactor}
-                        onChange={(event) => {
-                          const factor = Number(event.target.value);
-                          setWorkHourFactor(factor);
-                          try { window.localStorage.setItem(WORK_HOUR_FACTOR_KEY, String(factor)); } catch { /* 忽略 */ }
-                        }}
-                      >
-                        {[0.5, 1, 1.25, 1.5, 2].map((factor) => (
-                          <option key={factor} value={factor}>{factor}×</option>
-                        ))}
-                      </select>
-                    </label>
+                    <Tag color="app-teal" variant="outlined">本月共 {monthlyWorkdays} 个工作日</Tag>
+                    <Tag color="warm-peach-pink" variant="outlined">所需工时 <strong>{monthlyRequiredHours}</strong> 小时</Tag>
+                    <Tooltip title="所需工时 = 本月工作日 × 8 小时 × 工时系数" variant="island" placement="bottom">
+                      <label className="work-hour-factor">
+                        工时系数
+                        <select
+                          value={workHourFactor}
+                          onChange={(event) => {
+                            const factor = Number(event.target.value);
+                            setWorkHourFactor(factor);
+                            try { window.localStorage.setItem(WORK_HOUR_FACTOR_KEY, String(factor)); } catch { /* 忽略 */ }
+                            Notification.info({ message: `工时系数已调整为 ${factor}×`, duration: 2 });
+                          }}
+                        >
+                          {[0.5, 1, 1.25, 1.5, 2].map((factor) => (
+                            <option key={factor} value={factor}>{factor}×</option>
+                          ))}
+                        </select>
+                      </label>
+                    </Tooltip>
                   </div>
                 </div>
                 <WeatherCard />
@@ -665,9 +661,9 @@ function App() {
                 </div>
                 <Divider />
                 <div className="progress-list">
-                  <ProgressRow label="本周已过" value={progress.week} color="#19c8b9" />
-                  <ProgressRow label="本月已过" value={progress.month} color="#889df0" />
-                  <ProgressRow label="本年已过" value={progress.year} color="#f8a6b2" />
+                  <ProgressRow label="本周已过" value={progress.week} tone="teal" />
+                  <ProgressRow label="本月已过" value={progress.month} tone="blue" />
+                  <ProgressRow label="本年已过" value={progress.year} tone="pink" />
                 </div>
               </Card>
             </section>
