@@ -1,7 +1,7 @@
 import { Card, Cursor, Divider, Notification, Progress, Tag, Title, Tooltip } from 'animal-island-ui';
 import { Analytics } from '@vercel/analytics/react';
 import { init } from '@waline/client';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   formatHolidayDate,
   getGanzhiYear,
@@ -49,6 +49,15 @@ const BINGO_LINES = [
   [0, 4, 8],
   [2, 4, 6],
 ];
+const MAX_VISIBLE_LUNCH_CAPSULES = 9;
+
+interface LunchItem {
+  id: number;
+  item: string;
+  name: string;
+  source: 'preset' | 'user';
+  createdAt: string;
+}
 
 function getDateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -140,6 +149,7 @@ function QuickNav({ onOpenChangelog }: QuickNavProps) {
       <a href="#countdown-section">盼头</a>
       <a href="#progress-section">进度</a>
       <a href="#bingo-section">宾果</a>
+      <a href="#lunch-section">午饭</a>
       <button type="button" onClick={onOpenChangelog}>
         更新
       </button>
@@ -292,6 +302,171 @@ function BingoCard() {
               <li key={`${entry.displayName}-${index}`}><span>{entry.displayName}</span><strong>{entry.score}/9</strong></li>
             ))}</ol>
           )}
+        </div>
+      </Card>
+    </section>
+  );
+}
+
+function LunchWheelCard() {
+  const [items, setItems] = useState<LunchItem[]>([]);
+  const [pickedItem, setPickedItem] = useState<LunchItem | null>(null);
+  const [itemInput, setItemInput] = useState('');
+  const [nameInput, setNameInput] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [spinning, setSpinning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadItems = useCallback(async () => {
+    try {
+      setError(null);
+      const response = await fetch('/api/lunch/items');
+      if (!response.ok) throw new Error('午饭盒加载失败');
+      const data = await response.json() as { items?: LunchItem[] };
+      setItems(data.items ?? []);
+    } catch {
+      setError('午饭盒暂时没打开，稍后再来投喂。');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void loadItems(); }, [loadItems]);
+  const visibleCapsules = useMemo(() => items.slice(0, MAX_VISIBLE_LUNCH_CAPSULES), [items]);
+
+  const submitLunchItem = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const item = itemInput.trim();
+    const name = nameInput.trim();
+
+    if (!item || !name) {
+      Notification.warning({ message: '还差一点点', description: '饭名和投喂人都要填。' });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await fetch('/api/lunch/items', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ item, name }),
+      });
+      if (!response.ok) throw new Error('save failed');
+      const data = await response.json() as { item: LunchItem };
+      setItems((current) => [...current, data.item]);
+      setItemInput('');
+      setNameInput('');
+      Notification.success({ message: '投喂成功', description: `${data.item.item} 已放进午饭盒。` });
+    } catch {
+      Notification.error({ message: '投喂失败', description: '午饭盒盖子卡住了，稍后再试。' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const spinLunchWheel = async () => {
+    if (spinning || items.length === 0) return;
+    setSpinning(true);
+    setPickedItem(null);
+
+    try {
+      const response = await fetch('/api/lunch/pick', { method: 'POST' });
+      if (!response.ok) throw new Error('pick failed');
+      const data = await response.json() as { item: LunchItem };
+
+      window.setTimeout(() => {
+        setPickedItem(data.item);
+        setSpinning(false);
+      }, 1800);
+    } catch {
+      setSpinning(false);
+      Notification.error({ message: '扭蛋机卡住了', description: '今天的饭还在宇宙里漂，稍后再扭。' });
+    }
+  };
+
+  return (
+    <section id="lunch-section" className="lunch-section" aria-labelledby="lunch-title">
+      <div className="section-title" id="lunch-title">
+        <Title size="middle" color="app-teal">午饭扭蛋机</Title>
+      </div>
+      <Card pattern="app-pink" className="lunch-card">
+        <div className="lunch-layout">
+          <div className="lunch-machine-panel">
+            <div className={`lunch-gacha-machine${spinning ? ' shaking' : ''}`} aria-hidden="true">
+              <div className="lunch-gacha-dome">
+                {visibleCapsules.length === 0 ? (
+                  <>
+                    <span className="lunch-capsule capsule-1">🍙</span>
+                    <span className="lunch-capsule capsule-2">🍜</span>
+                    <span className="lunch-capsule capsule-3">🍗</span>
+                  </>
+                ) : visibleCapsules.map((entry, index) => (
+                  <span key={entry.id} className={`lunch-capsule capsule-${(index % 9) + 1}`}>
+                    {entry.item.slice(0, 3)}
+                  </span>
+                ))}
+                <div className="lunch-dome-shine" />
+              </div>
+              <div className="lunch-machine-body">
+                <div className="lunch-machine-label">
+                  <span>LUNCH</span>
+                  <strong>午饭盒</strong>
+                </div>
+                <button
+                  className="lunch-gacha-knob"
+                  type="button"
+                  disabled={loading || spinning || items.length === 0}
+                  onClick={spinLunchWheel}
+                >
+                  <span>{spinning ? '扭动中' : '扭一下'}</span>
+                </button>
+                <div className="lunch-gacha-slot">
+                  <span>{spinning ? '咔哒咔哒…' : '今日饭票出口'}</span>
+                </div>
+              </div>
+              <div className="lunch-machine-feet" />
+            </div>
+            <div className={`lunch-result${pickedItem ? ' active' : ''}`}>
+              {pickedItem ? (
+                <>
+                  <span className="bingo-result-label">今日饭票</span>
+                  <strong>{pickedItem.item}</strong>
+                  <p>由 {pickedItem.name} 投喂 · 吃饱了再假装忙。</p>
+                </>
+              ) : (
+                <p>{loading ? '正在打开公共午饭盒…' : '扭一下，让命运替你点餐。'}</p>
+              )}
+            </div>
+          </div>
+          <div className="lunch-side-panel">
+            <span className="card-eyebrow">PUBLIC LUNCH BOX</span>
+            <h2>往午饭盒里投喂一个选择</h2>
+            <p>大家添加的饭会永久进入公共午饭盒，后来的人也可能被你拯救午饭选择困难症。</p>
+            <form className="lunch-form" onSubmit={submitLunchItem}>
+              <input
+                value={itemInput}
+                maxLength={30}
+                placeholder="饭的名称，比如 老乡鸡"
+                aria-label="饭的名称"
+                onChange={(event) => setItemInput(event.target.value)}
+              />
+              <input
+                value={nameInput}
+                maxLength={20}
+                placeholder="你的名字，比如 Alex"
+                aria-label="贡献者姓名"
+                onChange={(event) => setNameInput(event.target.value)}
+              />
+              <button type="submit" disabled={submitting}>
+                {submitting ? '投喂中…' : '放进午饭盒'}
+              </button>
+            </form>
+            <div className="lunch-pool-meta">
+              <Tag color="app-teal" variant="outlined">午饭盒共有 {items.length} 个选择</Tag>
+              {error && <span>{error}</span>}
+            </div>
+          </div>
         </div>
       </Card>
     </section>
@@ -669,6 +844,8 @@ function App() {
             </section>
 
             <BingoCard />
+
+            <LunchWheelCard />
 
             <section id="waline-section" className="waline-section" aria-label="摸鱼吐槽区">
               <div className="waline-title">

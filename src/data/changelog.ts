@@ -1,4 +1,4 @@
-export const APP_VERSION = '0.4.0';
+export const APP_VERSION = '0.5.0';
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.5.0',
+    date: '2026-07-13',
+    title: '上线公共午饭盒与午饭扭蛋机',
+    changes: [
+      '新增“午饭扭蛋机”模块',
+      '支持用户投喂饭名和姓名，永久进入公共午饭盒',
+      '午饭抽取使用一轮不重复机制，确保每个选择都会被摸到',
+    ],
+  },
   {
     version: '0.4.0',
     date: '2026-06-28',
