@@ -20,7 +20,10 @@ const BINGO_STORAGE_PREFIX = 'moyu-bingo';
 const KFC_THURSDAY_STORAGE_PREFIX = 'moyu-kfc-thursday-dismissed';
 const VISITOR_STORAGE_KEY = 'moyu-visitor-profile';
 const WORK_HOUR_FACTOR_KEY = 'moyu-work-hour-factor';
+const OFFWORK_TIME_KEY = 'moyu-offwork-time';
+const OFFWORK_DISMISSED_PREFIX = 'moyu-offwork-dismissed';
 const DAILY_WORK_HOURS = 8;
+const DEFAULT_OFFWORK_TIME = '18:00';
 const KFC_THURSDAY_COPIES = [
   '曾经有一份超级美味的 KFC 疯狂星期四套餐摆在我面前，我没有珍惜，等到失去的时候才后悔莫及。尘世间最痛苦的事莫过于此。如果上天能够给我一个再来一次的机会，我会对 KFC 疯狂星期四说三个字：我爱它！如果非要在这份套餐上加一个期限的话，我希望是……每周四都来一份。',
   '今天是疯狂星期四，我表面在上班，实际上灵魂已经坐在 KFC 门口等一个善良的人对我说：别装了，V 你 50。',
@@ -61,6 +64,32 @@ interface LunchItem {
 
 function getDateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function normalizeOffworkTime(value: string | null) {
+  if (!value || !/^\d{2}:\d{2}$/.test(value)) return DEFAULT_OFFWORK_TIME;
+  const [hour, minute] = value.split(':').map(Number);
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return DEFAULT_OFFWORK_TIME;
+  return value;
+}
+
+function getOffworkTarget(now: Date, offworkTime: string) {
+  const [hour, minute] = offworkTime.split(':').map(Number);
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute, 0, 0);
+}
+
+function formatDuration(ms: number) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return [hours, minutes, seconds].map((value) => String(value).padStart(2, '0')).join(':');
+}
+
+function formatPreciseDuration(ms: number) {
+  const safeMs = Math.max(0, Math.floor(ms));
+  const milliseconds = safeMs % 1000;
+  return `${formatDuration(safeMs)}.${String(milliseconds).padStart(3, '0')}`;
 }
 
 function getVisitorProfile() {
@@ -140,9 +169,10 @@ function ProgressRow({ label, value, tone }: { label: string; value: number; ton
 
 interface QuickNavProps {
   onOpenChangelog: () => void;
+  onOpenOffwork: () => void;
 }
 
-function QuickNav({ onOpenChangelog }: QuickNavProps) {
+function QuickNav({ onOpenChangelog, onOpenOffwork }: QuickNavProps) {
   return (
     <nav className="quick-nav" aria-label="摸鱼日历快捷导航">
       <a href="#today-section">今日</a>
@@ -150,11 +180,59 @@ function QuickNav({ onOpenChangelog }: QuickNavProps) {
       <a href="#progress-section">进度</a>
       <a href="#bingo-section">宾果</a>
       <a href="#lunch-section">午饭</a>
+      <button type="button" onClick={onOpenOffwork}>
+        下班
+      </button>
       <button type="button" onClick={onOpenChangelog}>
         更新
       </button>
       <a href="#waline-section">吐槽</a>
     </nav>
+  );
+}
+
+interface OffworkCountdownModeProps {
+  now: Date;
+  offworkTime: string;
+  onChangeOffworkTime: (value: string) => void;
+  onExit: () => void;
+}
+
+function OffworkCountdownMode({ now, offworkTime, onChangeOffworkTime, onExit }: OffworkCountdownModeProps) {
+  const target = useMemo(() => getOffworkTarget(now, offworkTime), [now, offworkTime]);
+  const remainingMs = target.getTime() - now.getTime();
+  const isAfterOffwork = remainingMs <= 0;
+  const timeText = formatPreciseDuration(remainingMs);
+
+  return (
+    <main className={`offwork-mode${isAfterOffwork ? ' offwork-done' : ''}`} aria-label="周五下班倒计时">
+      <div className="offwork-grid-bg" aria-hidden="true" />
+      <section className="offwork-clock" aria-live="polite">
+        <p className="offwork-kicker">FRIDAY OFFWORK COUNTDOWN</p>
+        <h1>{isAfterOffwork ? '下班！' : '距离下班还有'}</h1>
+        <div className="offwork-time-display">{isAfterOffwork ? '00:00:00.000' : timeText}</div>
+        <p className="offwork-date-line">
+          {now.getFullYear()}年{now.getMonth() + 1}月{now.getDate()}日 · {WEEKDAYS[now.getDay()]}
+        </p>
+        <p className="offwork-copy">
+          {isAfterOffwork ? '本周存活成功。请有序撤离工位。' : '稳住，工位只是暂时的。'}
+        </p>
+        <form className="offwork-settings" onSubmit={(event) => event.preventDefault()}>
+          <label>
+            目标下班时间
+            <input
+              type="time"
+              value={offworkTime}
+              onChange={(event) => onChangeOffworkTime(normalizeOffworkTime(event.target.value))}
+            />
+          </label>
+          <span>{isAfterOffwork ? '已经到点，剩下的是自由。' : `当前目标 ${offworkTime}`}</span>
+        </form>
+        <button className="offwork-exit" type="button" onClick={onExit}>
+          返回摸鱼日历
+        </button>
+      </section>
+    </main>
   );
 }
 
@@ -601,6 +679,15 @@ function App() {
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const [isKfcThursdayOpen, setIsKfcThursdayOpen] = useState(false);
   const [overrideHoliday, setOverrideHoliday] = useState(false);
+  const [isOffworkModeOpen, setIsOffworkModeOpen] = useState(false);
+  const [offworkDismissedToday, setOffworkDismissedToday] = useState(false);
+  const [offworkTime, setOffworkTime] = useState(() => {
+    try {
+      return normalizeOffworkTime(window.localStorage.getItem(OFFWORK_TIME_KEY));
+    } catch {
+      return DEFAULT_OFFWORK_TIME;
+    }
+  });
   const [workHourFactor, setWorkHourFactor] = useState(() => {
     try {
       const stored = Number(window.localStorage.getItem(WORK_HOUR_FACTOR_KEY));
@@ -615,6 +702,22 @@ function App() {
   const calendarStatus = useCalendarStatus(todayKey);
 
   useEffect(() => {
+    try {
+      setOffworkDismissedToday(window.localStorage.getItem(`${OFFWORK_DISMISSED_PREFIX}:${todayKey}`) === 'true');
+    } catch {
+      setOffworkDismissedToday(false);
+    }
+  }, [todayKey]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(OFFWORK_TIME_KEY, offworkTime);
+    } catch {
+      // 忽略存储失败，倒计时本次会话仍可用
+    }
+  }, [offworkTime]);
+
+  useEffect(() => {
     const key = `moyu-page-view:${todayKey}`;
     if (window.sessionStorage.getItem(key)) return;
     window.sessionStorage.setItem(key, '1');
@@ -625,9 +728,9 @@ function App() {
   }, [todayKey]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    const timer = window.setInterval(() => setNow(new Date()), isOffworkModeOpen ? 16 : 60_000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [isOffworkModeOpen]);
 
   useEffect(() => {
     if (!isChangelogOpen) return;
@@ -720,6 +823,13 @@ function App() {
       : `${formatHolidayDate(holiday.start)} · ${holiday.name}`;
 
   const inHolidayMode = Boolean(calendarStatus.data?.isRestDay) && !overrideHoliday;
+  const offworkTarget = useMemo(() => getOffworkTarget(now, offworkTime), [now, offworkTime]);
+  const offworkRemainingMs = offworkTarget.getTime() - now.getTime();
+  const canAutoOpenOffworkMode = Boolean(calendarStatus.data?.isWorkday)
+    && now.getDay() === 5
+    && !offworkDismissedToday
+    && offworkRemainingMs > 0
+    && !inHolidayMode;
 
   const closeKfcThursday = useCallback(() => {
     try {
@@ -730,6 +840,25 @@ function App() {
     setIsKfcThursdayOpen(false);
   }, [todayKey]);
 
+  useEffect(() => {
+    if (!canAutoOpenOffworkMode) return;
+    setIsOffworkModeOpen(true);
+  }, [canAutoOpenOffworkMode]);
+
+  const handleOffworkTimeChange = useCallback((value: string) => {
+    setOffworkTime(normalizeOffworkTime(value));
+  }, []);
+
+  const exitOffworkMode = useCallback(() => {
+    try {
+      window.localStorage.setItem(`${OFFWORK_DISMISSED_PREFIX}:${todayKey}`, 'true');
+    } catch {
+      // 忽略存储失败，先尊重当前关闭动作
+    }
+    setOffworkDismissedToday(true);
+    setIsOffworkModeOpen(false);
+  }, [todayKey]);
+
   if (inHolidayMode && calendarStatus.data) {
     return (
       <HolidayMode
@@ -737,6 +866,20 @@ function App() {
         status={calendarStatus.data}
         onExit={() => setOverrideHoliday(true)}
       />
+    );
+  }
+
+  if (isOffworkModeOpen) {
+    return (
+      <>
+        <OffworkCountdownMode
+          now={now}
+          offworkTime={offworkTime}
+          onChangeOffworkTime={handleOffworkTimeChange}
+          onExit={exitOffworkMode}
+        />
+        <Analytics />
+      </>
     );
   }
 
@@ -758,7 +901,10 @@ function App() {
               </div>
             </header>
 
-            <QuickNav onOpenChangelog={() => setIsChangelogOpen(true)} />
+            <QuickNav
+              onOpenChangelog={() => setIsChangelogOpen(true)}
+              onOpenOffwork={() => setIsOffworkModeOpen(true)}
+            />
 
             <section id="today-section" className="today-section">
               <Card pattern="default" className="today-card">

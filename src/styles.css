@@ -479,7 +479,7 @@ p {
 
 .countdown-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
 }
 
@@ -1446,6 +1446,145 @@ p {
   font-weight: 900;
 }
 
+.offwork-mode {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 32px 22px;
+  color: #fffdf5;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(247, 205, 103, 0.16) 0 2px, transparent 3px) 0 0 / 34px 34px,
+    linear-gradient(145deg, #15251d 0%, #16372f 52%, #0d2522 100%);
+  overflow: hidden;
+}
+
+.offwork-grid-bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0.26;
+  background:
+    linear-gradient(rgba(255, 253, 245, 0.08) 1px, transparent 1px) 0 0 / 52px 52px,
+    linear-gradient(90deg, rgba(255, 253, 245, 0.08) 1px, transparent 1px) 0 0 / 52px 52px;
+  mask-image: radial-gradient(circle at center, #000 0 42%, transparent 78%);
+  pointer-events: none;
+}
+
+.offwork-clock {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 1120px);
+  text-align: center;
+}
+
+.offwork-kicker {
+  margin: 0 0 16px;
+  color: #19c8b9;
+  font-size: clamp(12px, 1.7vw, 18px);
+  font-weight: 900;
+  letter-spacing: 0.22em;
+}
+
+.offwork-clock h1 {
+  margin: 0 0 14px;
+  color: rgba(255, 253, 245, 0.86);
+  font-size: clamp(24px, 4vw, 52px);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.offwork-time-display {
+  margin: 0 auto 18px;
+  color: #fffdf5;
+  font-size: clamp(72px, 18vw, 220px);
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.075em;
+  text-shadow: 0 10px 0 rgba(0, 0, 0, 0.24), 0 22px 48px rgba(0, 0, 0, 0.28);
+  font-variant-numeric: tabular-nums;
+}
+
+.offwork-done .offwork-time-display {
+  color: #f7cd67;
+}
+
+.offwork-date-line {
+  margin: 0 0 10px;
+  color: rgba(255, 253, 245, 0.64);
+  font-size: clamp(14px, 2vw, 22px);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.offwork-copy {
+  margin: 0 0 28px;
+  color: rgba(255, 253, 245, 0.78);
+  font-size: clamp(16px, 2.2vw, 26px);
+  font-weight: 900;
+}
+
+.offwork-settings {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 0 auto 22px;
+  padding: 12px 14px;
+  border: 2px solid rgba(255, 253, 245, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 253, 245, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.offwork-settings label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 253, 245, 0.86);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.offwork-settings input {
+  width: 126px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 2px solid rgba(25, 200, 185, 0.5);
+  border-radius: 999px;
+  color: #fffdf5;
+  background: rgba(0, 0, 0, 0.18);
+  font: inherit;
+  font-weight: 900;
+  outline: none;
+}
+
+.offwork-settings span {
+  color: rgba(255, 253, 245, 0.58);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.offwork-exit {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 0 22px;
+  border: 2px solid rgba(247, 205, 103, 0.84);
+  border-radius: 999px;
+  color: #15251d;
+  background: #f7cd67;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  box-shadow: 0 5px 0 rgba(201, 168, 64, 0.7);
+  transition: transform 0.16s ease, filter 0.16s ease;
+}
+
+.offwork-exit:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+}
+
 footer {
   display: flex;
   align-items: center;
@@ -1615,6 +1754,26 @@ footer p {
   .quick-nav button {
     flex: 1 1 72px;
     min-width: auto;
+  }
+
+  .offwork-mode {
+    padding: 22px 14px;
+  }
+
+  .offwork-time-display {
+    font-size: clamp(56px, 17vw, 96px);
+    letter-spacing: -0.06em;
+  }
+
+  .offwork-settings {
+    align-items: stretch;
+    flex-direction: column;
+    width: min(100%, 330px);
+    border-radius: 24px;
+  }
+
+  .offwork-settings label {
+    justify-content: space-between;
   }
 
   .changelog-overlay {

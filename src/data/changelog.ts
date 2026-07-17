@@ -1,4 +1,4 @@
-export const APP_VERSION = '0.5.0';
+export const APP_VERSION = '0.6.0';
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.6.0',
+    date: '2026-07-17',
+    title: '加入周五下班倒计时',
+    changes: [
+      '周五工作日下班前自动进入全屏倒计时模式',
+      '默认下班时间为 18:00，支持在全屏页面里自行设置',
+      '返回摸鱼日历后当天不再自动弹出，仍可从导航手动进入',
+    ],
+  },
   {
     version: '0.5.0',
     date: '2026-07-13',
