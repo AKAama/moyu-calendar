@@ -10,7 +10,7 @@ import {
 } from './lib/calendar';
 import { APP_VERSION, CHANGELOG } from './data/changelog';
 import { captureShareImage, shareImage } from './lib/share';
-import { useCalendarStatus } from './lib/useCalendarStatus';
+import { useCalendarStatus, type CalendarStatus } from './lib/useCalendarStatus';
 import ShareCard from './components/ShareCard';
 import WeatherCard from './components/WeatherCard';
 import HolidayMode from './components/HolidayMode';
@@ -196,6 +196,14 @@ interface OffworkScene {
   kicker: string;
   waiting: string;
   done: string;
+}
+
+function resolveHolidayEveName(status: CalendarStatus | null): string | null {
+  if (!status) return null;
+  if (status.holidayEveName) return status.holidayEveName;
+  const next = status.nextHoliday;
+  if (next && !next.active && next.days === 1) return next.name;
+  return null;
 }
 
 function getOffworkScene(now: Date, holidayEveName: string | null): OffworkScene {
@@ -859,7 +867,7 @@ function App() {
       : `${formatHolidayDate(holiday.start)} · ${holiday.name}`;
 
   const inHolidayMode = Boolean(calendarStatus.data?.isRestDay) && !overrideHoliday;
-  const holidayEveName = calendarStatus.data?.holidayEveName ?? null;
+  const holidayEveName = resolveHolidayEveName(calendarStatus.data);
   const offworkTarget = useMemo(() => getOffworkTarget(now, offworkTime), [now, offworkTime]);
   const offworkRemainingMs = offworkTarget.getTime() - now.getTime();
   // 周五，或法定节假日开始前一天；当天仍要上班（含调休补班）才自动进入。
