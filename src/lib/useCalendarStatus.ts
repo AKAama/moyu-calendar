@@ -15,6 +15,7 @@ export interface CalendarStatus {
   isHoliday: boolean;
   isTransferWorkday: boolean;
   holidayName: string | null;
+  holidayEveName: string | null;
   monthlyWorkdays: number;
   daysToFriday: number;
   daysToRestDay: number;

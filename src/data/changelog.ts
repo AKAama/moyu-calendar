@@ -1,4 +1,4 @@
-export const APP_VERSION = '0.6.0';
+export const APP_VERSION = '0.6.1';
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.6.1',
+    date: '2026-09-24',
+    title: '法定节假日前一天也进入下班倒计时',
+    changes: [
+      '下班倒计时不再只认周五，法定节假日开始前一天、当天仍要上班时也会自动进入',
+      '节前当天会写明节日名称，比如中秋节前最后一班',
+      '调休补班如果刚好卡在节前，同样会进入倒计时',
+    ],
+  },
   {
     version: '0.6.0',
     date: '2026-07-17',

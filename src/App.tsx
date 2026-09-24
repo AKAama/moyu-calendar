@@ -191,31 +191,67 @@ function QuickNav({ onOpenChangelog, onOpenOffwork }: QuickNavProps) {
   );
 }
 
+interface OffworkScene {
+  label: string;
+  kicker: string;
+  waiting: string;
+  done: string;
+}
+
+function getOffworkScene(now: Date, holidayEveName: string | null): OffworkScene {
+  if (holidayEveName) {
+    return {
+      label: `${holidayEveName}前下班倒计时`,
+      kicker: 'HOLIDAY EVE COUNTDOWN',
+      waiting: `明天就是${holidayEveName}，今天先把班上完。`,
+      done: `${holidayEveName}前最后一班，请有序撤离工位。`,
+    };
+  }
+
+  if (now.getDay() === 5) {
+    return {
+      label: '周五下班倒计时',
+      kicker: 'FRIDAY OFFWORK COUNTDOWN',
+      waiting: '稳住，工位只是暂时的。',
+      done: '本周存活成功。请有序撤离工位。',
+    };
+  }
+
+  return {
+    label: '下班倒计时',
+    kicker: 'OFFWORK COUNTDOWN',
+    waiting: '稳住，工位只是暂时的。',
+    done: '今天的班上完了。请有序撤离工位。',
+  };
+}
+
 interface OffworkCountdownModeProps {
   now: Date;
   offworkTime: string;
+  holidayEveName: string | null;
   onChangeOffworkTime: (value: string) => void;
   onExit: () => void;
 }
 
-function OffworkCountdownMode({ now, offworkTime, onChangeOffworkTime, onExit }: OffworkCountdownModeProps) {
+function OffworkCountdownMode({ now, offworkTime, holidayEveName, onChangeOffworkTime, onExit }: OffworkCountdownModeProps) {
   const target = useMemo(() => getOffworkTarget(now, offworkTime), [now, offworkTime]);
   const remainingMs = target.getTime() - now.getTime();
   const isAfterOffwork = remainingMs <= 0;
   const timeText = formatPreciseDuration(remainingMs);
+  const scene = getOffworkScene(now, holidayEveName);
 
   return (
-    <main className={`offwork-mode${isAfterOffwork ? ' offwork-done' : ''}`} aria-label="周五下班倒计时">
+    <main className={`offwork-mode${isAfterOffwork ? ' offwork-done' : ''}`} aria-label={scene.label}>
       <div className="offwork-grid-bg" aria-hidden="true" />
       <section className="offwork-clock" aria-live="polite">
-        <p className="offwork-kicker">FRIDAY OFFWORK COUNTDOWN</p>
+        <p className="offwork-kicker">{scene.kicker}</p>
         <h1>{isAfterOffwork ? '下班！' : '距离下班还有'}</h1>
         <div className="offwork-time-display">{isAfterOffwork ? '00:00:00.000' : timeText}</div>
         <p className="offwork-date-line">
           {now.getFullYear()}年{now.getMonth() + 1}月{now.getDate()}日 · {WEEKDAYS[now.getDay()]}
         </p>
         <p className="offwork-copy">
-          {isAfterOffwork ? '本周存活成功。请有序撤离工位。' : '稳住，工位只是暂时的。'}
+          {isAfterOffwork ? scene.done : scene.waiting}
         </p>
         <form className="offwork-settings" onSubmit={(event) => event.preventDefault()}>
           <label>
@@ -823,10 +859,12 @@ function App() {
       : `${formatHolidayDate(holiday.start)} · ${holiday.name}`;
 
   const inHolidayMode = Boolean(calendarStatus.data?.isRestDay) && !overrideHoliday;
+  const holidayEveName = calendarStatus.data?.holidayEveName ?? null;
   const offworkTarget = useMemo(() => getOffworkTarget(now, offworkTime), [now, offworkTime]);
   const offworkRemainingMs = offworkTarget.getTime() - now.getTime();
+  // 周五，或法定节假日开始前一天；当天仍要上班（含调休补班）才自动进入。
   const canAutoOpenOffworkMode = Boolean(calendarStatus.data?.isWorkday)
-    && now.getDay() === 5
+    && (now.getDay() === 5 || Boolean(holidayEveName))
     && !offworkDismissedToday
     && offworkRemainingMs > 0
     && !inHolidayMode;
@@ -875,6 +913,7 @@ function App() {
         <OffworkCountdownMode
           now={now}
           offworkTime={offworkTime}
+          holidayEveName={holidayEveName}
           onChangeOffworkTime={handleOffworkTimeChange}
           onExit={exitOffworkMode}
         />
