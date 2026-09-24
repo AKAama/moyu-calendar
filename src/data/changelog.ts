@@ -1,4 +1,4 @@
-export const APP_VERSION = '0.6.1';
+export const APP_VERSION = '0.6.2';
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.6.2',
+    date: '2026-09-24',
+    title: '摸鱼榜可以自己写名字',
+    changes: [
+      '宾果卡片可以填写名字，写张三就会以摸鱼张三上榜',
+      '名字存在本机，已经上榜后再改名会更新今天的榜单',
+    ],
+  },
   {
     version: '0.6.1',
     date: '2026-09-24',

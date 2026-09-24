@@ -602,6 +602,63 @@ p {
   font-size: 24px;
 }
 
+.bingo-name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -4px 0 18px;
+}
+
+.bingo-name label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #8a7b66;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.bingo-name-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 40px;
+  padding: 0 12px 0 14px;
+  border: 2px solid rgba(159, 146, 125, 0.34);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.bingo-name-field:focus-within {
+  border-color: #19c8b9;
+  box-shadow: 0 0 0 4px rgba(25, 200, 185, 0.12);
+}
+
+.bingo-name-prefix {
+  color: #11a89b;
+  font-weight: 900;
+}
+
+.bingo-name-field input {
+  width: 7.5em;
+  min-height: 36px;
+  border: 0;
+  padding: 0;
+  color: #725d42;
+  background: transparent;
+  font: inherit;
+  font-weight: 900;
+  outline: none;
+}
+
+.bingo-name-note {
+  color: #9f927d;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .bingo-count {
   flex: 0 0 auto;
   padding: 9px 14px;
@@ -1702,6 +1759,7 @@ footer p {
 
   .progress-heading,
   .bingo-intro,
+  .bingo-name,
   footer {
     align-items: flex-start;
     flex-direction: column;

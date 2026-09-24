@@ -17,6 +17,8 @@ import HolidayMode from './components/HolidayMode';
 
 const WEEKDAYS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
 const BINGO_STORAGE_PREFIX = 'moyu-bingo';
+const BINGO_NAME_PREFIX = '摸鱼';
+const BINGO_BARE_NAME_MAX = 18;
 const KFC_THURSDAY_STORAGE_PREFIX = 'moyu-kfc-thursday-dismissed';
 const VISITOR_STORAGE_KEY = 'moyu-visitor-profile';
 const WORK_HOUR_FACTOR_KEY = 'moyu-work-hour-factor';
@@ -103,6 +105,30 @@ function getVisitorProfile() {
     return profile;
   } catch {
     return { id: `guest-${Date.now()}`, name: '匿名摸鱼人' };
+  }
+}
+
+function bareBingoName(displayName: string) {
+  return displayName.startsWith(BINGO_NAME_PREFIX)
+    ? displayName.slice(BINGO_NAME_PREFIX.length)
+    : displayName;
+}
+
+function toBingoDisplayName(raw: string, fallback: string) {
+  const compact = raw.trim().replace(/\s+/g, '');
+  const bare = bareBingoName(compact).slice(0, BINGO_BARE_NAME_MAX);
+  if (!bare) return fallback;
+  return `${BINGO_NAME_PREFIX}${bare}`.slice(0, 20);
+}
+
+function saveVisitorName(name: string) {
+  try {
+    const stored = window.localStorage.getItem(VISITOR_STORAGE_KEY);
+    const profile = stored ? JSON.parse(stored) as { id?: string; name?: string } : null;
+    if (!profile?.id) return;
+    window.localStorage.setItem(VISITOR_STORAGE_KEY, JSON.stringify({ ...profile, name }));
+  } catch {
+    // 名字本次会话仍可用
   }
 }
 
@@ -293,7 +319,15 @@ function BingoCard() {
   });
   const [leaderboard, setLeaderboard] = useState<Array<{ displayName: string; score: number; title: string }>>([]);
   const profile = useMemo(getVisitorProfile, []);
-  const submittedScoreRef = useRef(0);
+  const [nameDraft, setNameDraft] = useState(() => bareBingoName(profile.name));
+  const [displayName, setDisplayName] = useState(() => toBingoDisplayName(profile.name, profile.name));
+  const nameDraftRef = useRef(nameDraft);
+  const displayNameRef = useRef(displayName);
+  const selectedLengthRef = useRef(selected.length);
+  nameDraftRef.current = nameDraft;
+  displayNameRef.current = displayName;
+  selectedLengthRef.current = selected.length;
+  const submittedRef = useRef({ score: 0, name: '' });
 
   const refreshLeaderboard = useCallback(async () => {
     try {
@@ -323,19 +357,50 @@ function BingoCard() {
 
   useEffect(() => { void refreshLeaderboard(); }, [refreshLeaderboard]);
 
-  useEffect(() => {
-    if (!achievement || selected.length <= submittedScoreRef.current) return;
-    submittedScoreRef.current = selected.length;
+  const commitName = useCallback((raw: string) => {
+    const next = toBingoDisplayName(raw, displayNameRef.current);
+    setNameDraft(bareBingoName(next));
+    setDisplayName(next);
+    saveVisitorName(next);
+    return next;
+  }, []);
+
+  const publishScore = useCallback((name: string, score: number, title: string) => {
+    submittedRef.current = { score, name };
     void fetch('/api/bingo/complete', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ date: todayKey, visitorId: profile.id, displayName: profile.name,
-        score: selected.length, title: achievement.title }),
+      body: JSON.stringify({
+        date: todayKey,
+        visitorId: profile.id,
+        displayName: name,
+        score,
+        title,
+      }),
     }).then((response) => {
       if (!response.ok) throw new Error('save failed');
-      Notification.success({ message: '摸鱼成就已上榜', description: `${profile.name} · ${selected.length}/9` });
+      Notification.success({ message: '摸鱼成就已上榜', description: `${name} · ${score}/9` });
       return refreshLeaderboard();
     }).catch(() => Notification.error({ message: '上榜失败', description: '本地进度还在，稍后再试。' }));
-  }, [achievement?.title, profile.id, profile.name, refreshLeaderboard, selected.length, todayKey]);
+  }, [profile.id, refreshLeaderboard, todayKey]);
+
+  useEffect(() => {
+    if (!achievement) return;
+    if (selected.length <= submittedRef.current.score) return;
+    const name = toBingoDisplayName(nameDraftRef.current, displayNameRef.current);
+    if (name !== displayNameRef.current) {
+      setNameDraft(bareBingoName(name));
+      setDisplayName(name);
+      saveVisitorName(name);
+    }
+    publishScore(name, selected.length, achievement.title);
+  }, [achievement, publishScore, selected.length]);
+
+  useEffect(() => {
+    if (!achievement || submittedRef.current.score < 1) return;
+    if (displayName === submittedRef.current.name) return;
+    if (selectedLengthRef.current < submittedRef.current.score) return;
+    publishScore(displayName, selectedLengthRef.current, achievement.title);
+  }, [achievement, displayName, publishScore]);
 
   const toggleCell = (index: number) => {
     setSelected((current) =>
@@ -379,6 +444,35 @@ function BingoCard() {
           </div>
           <span className="bingo-count">{selected.length}/9</span>
         </div>
+        <form className="bingo-name" onSubmit={(event) => { event.preventDefault(); commitName(nameDraft); }}>
+          <label>
+            榜上的名字
+            <span className="bingo-name-field">
+              <span className="bingo-name-prefix" aria-hidden="true">{BINGO_NAME_PREFIX}</span>
+              <input
+                value={nameDraft}
+                maxLength={20}
+                placeholder="张三"
+                aria-label="榜上的名字，会自动加上摸鱼"
+                enterKeyHint="done"
+                onChange={(event) => {
+                  const value = event.target.value;
+                  const nativeEvent = event.nativeEvent;
+                  if ('isComposing' in nativeEvent && nativeEvent.isComposing) {
+                    setNameDraft(value);
+                    return;
+                  }
+                  setNameDraft(bareBingoName(value.replace(/\s+/g, '')).slice(0, BINGO_BARE_NAME_MAX));
+                }}
+                onCompositionEnd={(event) => {
+                  setNameDraft(bareBingoName(event.currentTarget.value.replace(/\s+/g, '')).slice(0, BINGO_BARE_NAME_MAX));
+                }}
+                onBlur={() => commitName(nameDraft)}
+              />
+            </span>
+          </label>
+          <span className="bingo-name-note">上榜显示 {toBingoDisplayName(nameDraft, displayName)}</span>
+        </form>
         <div className="bingo-board" role="group" aria-label="今日摸鱼宾果格子">
           {BINGO_TASKS.map((task, index) => {
             const isActive = selectedSet.has(index);
